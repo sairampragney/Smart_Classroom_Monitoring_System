@@ -76,6 +76,7 @@ class StateBroadcaster:
         self._last_sensor_stamp: float | None = None
         self._last_status_key: tuple | None = None
         self._last_cv_key: tuple | None = None
+        self._last_ml_key: tuple | None = None
 
     @property
     def is_running(self) -> bool:
@@ -86,6 +87,7 @@ class StateBroadcaster:
         self._last_sensor_stamp = None
         self._last_status_key = None
         self._last_cv_key = None
+        self._last_ml_key = None
 
     async def _run(self) -> None:
         logger.info("State broadcaster started (poll %.0f ms)", POLL_INTERVAL_S * 1000)
@@ -147,6 +149,18 @@ class StateBroadcaster:
                 self._last_cv_key = cv_key
                 await ws_manager.broadcast(
                     WSMessage(type=WSMessageType.FACE_DETECTION, payload=cv)
+                )
+
+        # --- ml_prediction (Phase 8) ---
+        # Only sent when the prediction actually changes, so a steady classroom
+        # does not produce a message every second.
+        if snapshot.ml_prediction is not None:
+            ml = snapshot.ml_prediction
+            ml_key = (ml.get("prediction"), ml.get("model"))
+            if ml_key != self._last_ml_key:
+                self._last_ml_key = ml_key
+                await ws_manager.broadcast(
+                    WSMessage(type=WSMessageType.ML_PREDICTION, payload=ml)
                 )
 
     def start(self) -> None:

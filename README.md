@@ -34,6 +34,7 @@ progress tracker.
 | 5 | Frontend ↔ Backend Real-Time | ✅ Complete |
 | 6 | Computer Vision Engine | ✅ Complete |
 | 7 | Computer Vision Frontend | ✅ Complete |
+| 8 | Machine Learning | ✅ Complete |
 | 3 | Arduino Firmware | ⏳ Pending |
 | 4 | Arduino ↔ Backend Connection | ⏳ Pending |
 | 5 | Frontend ↔ Backend Real-Time Connection | ⏳ Pending |
@@ -270,6 +271,73 @@ onto the displayed video correctly.
 > **Real face detection on live camera is not yet verified** — no person was in
 > front of the camera during the test. Capture, detection loop, FPS, WebSocket
 > streaming and camera release **were** verified on the real camera.
+
+---
+
+## Machine Learning (Phase 8)
+
+Sensor-based classroom occupancy prediction. Full documentation:
+[`docs/MACHINE_LEARNING.md`](docs/MACHINE_LEARNING.md).
+
+### Setup
+
+```powershell
+# 1. Download the real dataset (932 KB, not committed)
+.\scripts\fetch_datasets.ps1
+
+# 2. Train all five classifiers and save the artifact
+.\backend\.venv\Scripts\python.exe ml\scripts\train.py
+```
+
+The backend loads the artifact **once** at startup — it is never retrained on a
+sensor update.
+
+### Dataset
+
+| Item | Value |
+| --- | --- |
+| Name | UCI *Room Occupancy Estimation* |
+| Source | <https://archive.ics.uci.edu/dataset/864/occupancy+detection> |
+| Size | **10,129 rows × 19 columns** |
+| Missing / duplicates | 0 / 0 |
+| Target | `Room_Occupancy_Count` → binarised `> 0` = OCCUPIED |
+| Class balance | 8,228 EMPTY / 1,901 OCCUPIED (**18.8% occupied**) |
+
+Features are aggregated to exactly what the Arduino measures:
+`temp_mean` (DHT22), `light_mean` (LDR), `pir_count` (HC-SR501).
+
+### Measured model comparison (80/20 stratified split, seed 42)
+
+| Model | Accuracy | Precision | Recall | F1 | CV F1 |
+| --- | --- | --- | --- | --- | --- |
+| Logistic Regression | 0.9872 | 0.9836 | 0.9474 | 0.9651 | 0.9529 |
+| **Decision Tree** | **0.9985** | **0.9948** | **0.9974** | **0.9961** | 0.9928 |
+| KNN | 0.9985 | 0.9974 | 0.9947 | 0.9960 | 0.9872 |
+| SVM | 0.9926 | 0.9946 | 0.9658 | 0.9800 | 0.9673 |
+| Random Forest | 0.9985 | 0.9974 | 0.9947 | 0.9960 | 0.9928 |
+
+**Selected: Decision Tree** on the highest test F1 for the OCCUPIED class
+(accuracy alone is misleading when 81% of rows are EMPTY).
+Confusion matrix `[[1644, 2], [1, 379]]`. Training took **2.10 s**.
+
+### Prediction
+
+```powershell
+Invoke-RestMethod http://localhost:8000/api/ml/info
+Invoke-RestMethod -Method POST http://localhost:8000/api/ml/predict `
+  -ContentType 'application/json' `
+  -Body '{"temperature":26.0,"light":220,"motion":true}'
+```
+
+The prediction is produced **in the backend** when a sensor reading arrives and
+pushed to the UI as a `ml_prediction` WebSocket message. It is conceptually
+separate from Computer Vision: ML predicts occupancy from sensors, CV counts
+visible faces.
+
+> **Known limitation:** the dataset's light sensor spans roughly 0–280 while
+> the classroom LDR is a 0–1023 ADC, so raw LDR values sit outside the training
+> distribution. These metrics are measured on the public dataset and should not
+> be read as real-world classroom accuracy.
 
 ---
 

@@ -46,15 +46,28 @@ def test_health_components_cover_all_subsystems(client):
 
 
 def test_health_does_not_fake_hardware_states(client):
-    """With nothing wired up yet, hardware components must report NOT connected."""
+    """With nothing wired up yet, hardware components must report NOT connected.
+
+    ML is the one exception: from Phase 8 the model may legitimately report
+    LOADED. What must never happen is a state that does not correspond to a
+    real artifact, so that is what this test actually asserts.
+    """
     body = client.get("/health").json()
     services = body["services"]
     assert services["arduino"] == "DISCONNECTED"
     assert services["serial"] == "DISCONNECTED"
     assert services["camera"] == "DISCONNECTED"
     assert services["cv"] == "STOPPED"
-    assert services["ml"] == "NOT_LOADED"
     assert services["monitoring_running"] is False
+
+    # ML is LOADED only when a real, loadable artifact exists.
+    if services["ml"] == "LOADED":
+        from app.services.ml_service import ml_service
+
+        assert ml_service.is_loaded is True
+        assert ml_service.model_name, "LOADED must name a real model"
+    else:
+        assert services["ml"] in ("NOT_LOADED", "ERROR")
     assert body["websocket_clients"] == 0
 
 

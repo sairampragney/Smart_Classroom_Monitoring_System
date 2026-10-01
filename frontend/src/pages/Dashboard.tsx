@@ -25,6 +25,8 @@ export function Dashboard() {
     latest,
     lastSensorAt,
     isStale,
+    mlInfo,
+    mlPrediction,
     refreshHealth,
     reconnectWs,
   } = useSystemStatus()
@@ -71,9 +73,15 @@ export function Dashboard() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label="ML Occupancy"
-          value={null}
-          pending
-          hint="Awaiting Phase 8"
+          value={mlPrediction?.prediction ?? null}
+          pending={!mlPrediction}
+          hint={
+            mlPrediction
+              ? `${mlPrediction.model}${mlPrediction.confidence != null ? ` · ${(mlPrediction.confidence * 100).toFixed(0)}%` : ''}`
+              : mlInfo?.loaded
+                ? 'Waiting for sensor data'
+                : 'ML NOT AVAILABLE'
+          }
         />
         <StatCard
           label="CV Head Count"

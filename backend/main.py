@@ -25,11 +25,13 @@ from app import __version__  # noqa: E402
 from app.api.health import router as health_router  # noqa: E402
 from app.api.arduino import router as arduino_router  # noqa: E402
 from app.api.cv import router as cv_router  # noqa: E402
+from app.api.ml import router as ml_router  # noqa: E402
 from app.api.ws import router as ws_router  # noqa: E402
 from app.config import get_settings  # noqa: E402
 from app.logging_config import get_logger, setup_logging  # noqa: E402
 from app.services.broadcaster import broadcaster
 from app.services.cv_service import cv_service  # noqa: E402
+from app.services.ml_service import ml_service  # noqa: E402
 from app.services.serial_manager import serial_manager  # noqa: E402
 from app.services.websocket_manager import ws_manager  # noqa: E402
 
@@ -70,6 +72,13 @@ async def lifespan(app: FastAPI):
         settings.camera_index,
     )
 
+    # Phase 8: load the trained occupancy model ONCE at startup. It is never
+    # retrained on a sensor update; inference reuses this instance.
+    if ml_service.load():
+        logger.info("ML model ready: %s", ml_service.model_name)
+    else:
+        logger.warning("ML model NOT available: %s", ml_service.error)
+
     yield
 
     logger.info("Shutting down; closing %d WebSocket client(s)", ws_manager.client_count)
@@ -106,6 +115,7 @@ app.add_middleware(
 app.include_router(health_router)
 app.include_router(arduino_router)
 app.include_router(cv_router)
+app.include_router(ml_router)
 app.include_router(ws_router)
 
 

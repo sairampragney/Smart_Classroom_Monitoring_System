@@ -343,6 +343,10 @@ class SerialManager:
 
         self._received_count += 1
         state_store.update_sensor(reading)
+        # Phase 8: run the trained model on this exact reading so the prediction
+        # is published on the backend and reaches every client over the same
+        # WebSocket. Inference is CPU-cheap and the model is loaded once.
+        self._run_ml(reading)
         logger.info(
             "Sensor data received: T=%s H=%s L=%s M=%s",
             reading.temperature,
@@ -350,6 +354,26 @@ class SerialManager:
             reading.light,
             reading.motion,
         )
+
+    def _run_ml(self, reading) -> None:
+        """Attach an ML prediction to a sensor reading. Never raises."""
+        try:
+            from app.services.ml_service import ml_service
+
+            result = ml_service.predict(reading)
+            if result is not None:
+                state_store.update_ml(
+                    {
+                        "prediction": result["prediction"],
+                        "confidence": result["confidence"],
+                        "model": result["model"],
+                        "features": result["features"],
+                        "source": result["source"],
+                        "at": time.time(),
+                    }
+                )
+        except Exception as exc:  # noqa: BLE001 - ML must never break the sensor loop
+            logger.debug("ML prediction skipped: %s", exc)
 
     def _sleep_backoff(self, seconds: float) -> bool:
         """Sleep, waking early on shutdown OR monitoring cancellation.

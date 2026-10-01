@@ -208,6 +208,23 @@ Models: Logistic Regression, Decision Tree, KNN, SVM, Random Forest.
 
 ---
 
+## Phase 8 — Machine Learning ✅
+
+**Objective:** sensor-based occupancy prediction trained on real data, with a
+comparative study of five lightweight classifiers and a deployed prediction
+service.
+
+Dataset: **UCI Room Occupancy Estimation**, 10,129 × 19, 0 missing, 0 duplicates.
+Selected model: **Decision Tree** (test F1 0.9961, confusion `[[1644,2],[1,379]]`).
+
+Verified: 186 backend tests (25 new ML tests, real-data/real-artifact tests
+executed not skipped); `npm run build` passes; live `/api/ml/predict` and
+`/api/ml/info` confirmed on a running server.
+
+> **Arduino end-to-end ML NOT verified** — no physical board connected.
+
+---
+
 ## Phase 9 — History / Data
 
 **Objective:** persist timestamped records (sensors, ML prediction, head count)

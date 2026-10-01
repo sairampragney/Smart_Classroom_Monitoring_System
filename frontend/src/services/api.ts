@@ -11,6 +11,7 @@ import type {
   ArduinoStatusResponse,
   CVStatusResponse,
   HealthResponse,
+  MLInfo,
   MonitoringResponse,
   SensorResponse,
 } from '@/types'
@@ -76,6 +77,11 @@ export function stopCv(signal?: AbortSignal): Promise<{ cv: string; camera: stri
 /** Current CV pipeline status (Phase 7). */
 export function getCVStatus(signal?: AbortSignal): Promise<CVStatusResponse> {
   return request<CVStatusResponse>(config.endpoints.cvStatus, undefined, signal)
+}
+
+/** Trained model, dataset profile and every model's REAL metrics (Phase 8). */
+export function getMLInfo(signal?: AbortSignal): Promise<MLInfo> {
+  return request<MLInfo>(config.endpoints.mlInfo, undefined, signal)
 }
 
 /**

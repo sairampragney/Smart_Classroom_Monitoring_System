@@ -35,6 +35,10 @@ export const config = {
     cvStream: `${trimTrailingSlash(API_BASE_URL)}/api/cv/stream`,
     cvStart: `${trimTrailingSlash(API_BASE_URL)}/api/cv/start`,
     cvStop: `${trimTrailingSlash(API_BASE_URL)}/api/cv/stop`,
+    // Phase 8 machine learning
+    mlInfo: `${trimTrailingSlash(API_BASE_URL)}/api/ml/info`,
+    mlStatus: `${trimTrailingSlash(API_BASE_URL)}/api/ml/status`,
+    mlPredict: `${trimTrailingSlash(API_BASE_URL)}/api/ml/predict`,
   },
   /** WebSocket endpoint. */
   wsUrl: `${trimTrailingSlash(WS_BASE_URL)}/ws`,

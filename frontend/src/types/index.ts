@@ -215,6 +215,71 @@ export interface CVStatusResponse {
  * - stale : connection dropped or CV stopped; data must be marked as such
  * - none  : nothing has ever arrived
  */
+// ---------------------------------------------------------------------------
+// Phase 8 machine learning contracts
+//
+// Mirrors backend/app/services/ml_service.py and the `ml_prediction` payload.
+// ---------------------------------------------------------------------------
+
+/** One model's REAL measured metrics (never a placeholder). */
+export interface MLMetrics {
+  accuracy: number
+  precision: number
+  recall: number
+  /** F1 for the OCCUPIED (positive) class - the selection criterion. */
+  f1: number
+  /** Macro-averaged F1, reported because the data is imbalanced. */
+  f1_macro?: number
+}
+
+export interface MLModelResult {
+  name: string
+  metrics: MLMetrics
+  cv_f1_mean: number
+  cv_f1_std: number
+  train_seconds: number
+  /** Rows = true, cols = predicted: [[TN, FP], [FN, TP]] */
+  confusion_matrix: number[][]
+  supports_proba: boolean
+}
+
+export interface MLDatasetInfo {
+  name: string
+  source: string
+  rows: number
+  columns: number
+  target_column: string
+  target_transform: string
+  missing_values: number
+  duplicate_rows: number
+  class_distribution: Record<string, number>
+}
+
+export interface MLInfo {
+  loaded: boolean
+  error: string | null
+  model: string | null
+  feature_names?: string[]
+  supports_proba?: boolean
+  metrics?: MLMetrics
+  confusion_matrix?: number[][]
+  all_model_results?: MLModelResult[]
+  dataset?: MLDatasetInfo
+  split?: Record<string, unknown>
+  label_map?: Record<string, string>
+}
+
+/** Payload of the `ml_prediction` WebSocket message. */
+export interface MLPredictionPayload {
+  prediction: 'OCCUPIED' | 'EMPTY'
+  /** Real probability, or null when the model cannot report one. */
+  confidence: number | null
+  model: string
+  features: Record<string, number>
+  source: string
+  at: number
+}
+
 export type CvDataState = 'live' | 'stale' | 'none'
 
 /** Lifecycle of the frontend's own WebSocket link. */

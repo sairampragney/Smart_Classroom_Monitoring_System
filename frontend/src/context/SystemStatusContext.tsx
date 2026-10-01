@@ -23,6 +23,7 @@ import {
   getArduinoStatus,
   getCVStatus,
   getHealth,
+  getMLInfo,
   getSensors,
   startCv as apiStartCv,
   startMonitoring as apiStartMonitoring,
@@ -37,6 +38,8 @@ import type {
   CVStatusResponse,
   FaceBox,
   HealthResponse,
+  MLInfo,
+  MLPredictionPayload,
   MonitoringState,
   SensorReading,
   WSMessage,
@@ -103,6 +106,12 @@ interface SystemStatusValue {
   cvPending: boolean
   /** MJPEG endpoint for the camera panel (null when the backend is down). */
   cvStreamUrl: string | null
+
+  // ---- machine learning (Phase 8) ----
+  mlInfo: MLInfo | null
+  /** Latest sensor-based prediction, pushed over the same WebSocket. */
+  mlPrediction: MLPredictionPayload | null
+  refreshMl: () => void
 }
 
 const SystemStatusContext = createContext<SystemStatusValue | null>(null)
@@ -128,6 +137,10 @@ export function SystemStatusProvider({ children }: { children: ReactNode }) {
   const [cvFrameWidth, setCvFrameWidth] = useState<number | null>(null)
   const [cvFrameHeight, setCvFrameHeight] = useState<number | null>(null)
   const [lastDetectionAt, setLastDetectionAt] = useState<number | null>(null)
+
+  // ---- ML state (Phase 8) ----
+  const [mlInfo, setMlInfo] = useState<MLInfo | null>(null)
+  const [mlPrediction, setMlPrediction] = useState<MLPredictionPayload | null>(null)
 
   const fetchHealth = useCallback(async (signal?: AbortSignal) => {
     try {
@@ -254,6 +267,11 @@ export function SystemStatusProvider({ children }: { children: ReactNode }) {
           break
         }
 
+        case 'ml_prediction': {
+          setMlPrediction(message.payload as unknown as MLPredictionPayload)
+          break
+        }
+
         default:
           break
       }
@@ -346,6 +364,19 @@ export function SystemStatusProvider({ children }: { children: ReactNode }) {
 
   const cvPending = cvStatus?.cv === 'RUNNING' && !cvStatus.detector_ready
 
+  const refreshMl = useCallback(async () => {
+    try {
+      setMlInfo(await getMLInfo())
+    } catch {
+      /* backend down - healthError already reflects it */
+    }
+  }, [])
+
+  // Load the trained-model metadata once, alongside the first health fetch.
+  useEffect(() => {
+    void refreshMl()
+  }, [refreshMl])
+
   const value = useMemo<SystemStatusValue>(
     () => ({
       health,
@@ -388,6 +419,10 @@ export function SystemStatusProvider({ children }: { children: ReactNode }) {
       stopCv: handleStopCv,
       cvPending,
       cvStreamUrl: health ? config.endpoints.cvStream : null,
+
+      mlInfo,
+      mlPrediction,
+      refreshMl: () => void refreshMl(),
     }),
     [
       health, healthError, loading, state, lastMessage, messageCount, fetchHealth,
@@ -395,6 +430,7 @@ export function SystemStatusProvider({ children }: { children: ReactNode }) {
       handleStart, handleStop, actionPending, actionError,
       cvStatus, faces, faceCount, cvFps, cvFrameWidth, cvFrameHeight,
       lastDetectionAt, handleStartCv, handleStopCv, cvPending,
+      mlInfo, mlPrediction, refreshMl,
     ],
   )
 
