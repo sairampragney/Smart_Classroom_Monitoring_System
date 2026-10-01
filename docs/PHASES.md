@@ -70,6 +70,21 @@ required library list, upload procedure.
 
 ---
 
+## Phase 3 — Arduino Firmware ✅
+
+**Objective:** firmware reading DHT22, LDR and HC-SR501 PIR and emitting
+structured newline-delimited JSON over USB serial.
+
+Deliverables: `arduino/smart_classroom/smart_classroom.ino`, wiring/protocol
+documentation, contract tests.
+
+Verified: compiles for `arduino:avr:uno` (7406 bytes / 22% flash, 267 bytes /
+13% RAM, zero warnings with `--warnings all`); 25 protocol contract tests pass.
+
+> **Hardware testing NOT performed** — no Arduino or sensors were connected.
+
+---
+
 ## Phase 4 — Arduino ↔ Backend Connection
 
 **Objective:** `pyserial` port discovery, connection, JSON parsing, validation,

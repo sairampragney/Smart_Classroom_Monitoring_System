@@ -82,6 +82,15 @@ backend/data/*
 captures/
 debug_frames/
 
+# ---- Arduino build artifacts ----
+# arduino-cli / Arduino IDE output (compiled firmware is reproducible)
+arduino/**/build/
+*.hex
+*.elf
+*.bin
+*.eep
+*.map
+
 # ---- Editor / OS ----
 .vscode/
 !.vscode/extensions.json

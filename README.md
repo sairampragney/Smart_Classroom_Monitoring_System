@@ -29,6 +29,7 @@ progress tracker.
 | 0 | Project Initialization | ✅ Complete |
 | 1 | Frontend Foundation | ✅ Complete |
 | 2 | Backend Foundation | ✅ Complete |
+| 3 | Arduino Firmware | ✅ Complete |
 | 3 | Arduino Firmware | ⏳ Pending |
 | 4 | Arduino ↔ Backend Connection | ⏳ Pending |
 | 5 | Frontend ↔ Backend Real-Time Connection | ⏳ Pending |
@@ -132,6 +133,65 @@ Smart_Classroom_Monitoring_System/
 
 See [`docs/HARDWARE.md`](docs/HARDWARE.md) for the full wiring diagram and
 upload procedure.
+
+---
+
+---
+
+## Arduino Firmware (Phase 3)
+
+Firmware: [`arduino/smart_classroom/smart_classroom.ino`](arduino/smart_classroom/smart_classroom.ino)
+
+### Sensors
+
+| Sensor | Measures | Pin |
+| --- | --- | --- |
+| DHT22 / AM2302 | temperature, humidity | `D2` |
+| LDR + 10 kΩ | light intensity | `A0` |
+| HC-SR501 PIR | motion | `D7` |
+
+Required library: **DHT sensor library 1.4.7** (Adafruit).
+
+### Compile and upload
+
+```powershell
+# Compile only
+arduino-cli compile --fqbn arduino:avr:uno arduino\smart_classroom
+
+# Compile and upload
+arduino-cli compile --fqbn arduino:avr:uno -u arduino/smart_classroom
+```
+
+Or in the Arduino IDE: open the `.ino` → Tools → Board → Arduino Uno →
+Tools → Port → `Arduino Uno (COMx)` → Verify → Upload.
+
+Verified build: **7406 bytes flash (22%)**, **267 bytes RAM (13%)**, zero warnings
+with `--warnings all`.
+
+### Serial output
+
+One JSON object per line at **9600 baud**, every **1000 ms**:
+
+```json
+{"temperature":28.60,"humidity":57.20,"light":642,"motion":true}
+```
+
+- The four keys are always present, in a fixed order.
+- An unmeasurable value is emitted as `null` — never a made-up number.
+- Lines starting with `#` are informational and ignored by the parser.
+- Optional `"err":"DHT22_READ_FAILED"` / `"LDR_READ_FAILED"` on failure.
+
+Full wiring diagram, protocol rules and troubleshooting:
+[`docs/HARDWARE.md`](docs/HARDWARE.md).
+
+### Firmware contract tests
+
+```powershell
+.\backend\.venv\Scripts\python.exe -m pytest arduino\tests -v
+```
+
+> Close the Arduino IDE **Serial Monitor** before running the backend — it holds
+> the COM port exclusively and blocks `pyserial`.
 
 ---
 
