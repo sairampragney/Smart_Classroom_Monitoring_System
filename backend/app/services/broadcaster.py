@@ -35,9 +35,14 @@ from app.services.websocket_manager import ws_manager
 
 logger = get_logger(__name__)
 
-# How often to check for a change. 200 ms is well under the firmware's 1 s
-# sampling interval, so nothing is missed, and cheap when idle.
-POLL_INTERVAL_S = 0.2
+# How often to check for a change.
+#
+# Phase 5 (sensors) sampled once per second, so 200 ms was ample. Phase 6
+# added face_detection at ~30 FPS; at 200 ms the boxes could lag the video by
+# up to ~230 ms, which is visible as drift on a moving face. 50 ms keeps the
+# worst-case lag near ~80 ms while the change check is still just a few
+# comparisons per second and costs nothing when idle.
+POLL_INTERVAL_S = 0.05
 
 
 def _sensor_payload(reading: dict) -> dict:

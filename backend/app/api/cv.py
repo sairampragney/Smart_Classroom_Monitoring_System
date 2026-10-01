@@ -116,6 +116,25 @@ async def frame(include_image: bool = Query(default=True)) -> DetectedFrameRespo
     return payload
 
 
+@router.get("/stream")
+async def stream():
+    """Live MJPEG feed of the frames the CV engine already captured.
+
+    The backend stays the single authoritative camera source - this does NOT
+    open a second capture, so the video and the detection boxes always come
+    from the same pipeline.
+    """
+    from fastapi.responses import StreamingResponse
+
+    from app.services.cv_stream import BOUNDARY, stream_iter
+
+    return StreamingResponse(
+        stream_iter(),
+        media_type=f"multipart/x-mixed-replace; boundary={BOUNDARY}",
+        headers={"Cache-Control": "no-store", "Pragma": "no-cache"},
+    )
+
+
 @router.post("/start", response_model=CVActionResponse)
 async def start_cv() -> CVActionResponse:
     """Start continuous face detection."""

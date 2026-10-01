@@ -178,6 +178,25 @@ Deliverables: CV page, coordinate-mapping utility.
 
 ---
 
+## Phase 7 — Computer Vision Frontend ✅
+
+**Objective:** integrate the Phase 6 engine into the React Computer Vision
+page — live feed, green `FACE DETECTED` boxes, head count, real status/FPS/model.
+
+Deliverables: `/api/cv/stream` (MJPEG), `utils/cvMapping.ts`, CV types, CV state
+in the shared context, upgraded `CameraViewport`, real Computer Vision page,
+`frontend/tests/cvMapping.test.ts`.
+
+Verified: 161 backend tests pass; 39/39 frontend coordinate-mapping tests pass;
+`npm run build` passes; live end-to-end on the real webcam — 81
+`face_detection` messages, MJPEG 136 KB/s, camera released on stop.
+
+> **Real human-in-frame test NOT performed** — no person was available in front
+> of the camera. Face-detection behaviour is verified with scripted detector
+> output, not a real face.
+
+---
+
 ## Phase 8 — Machine Learning
 
 **Objective:** dataset loading, preprocessing, training and comparison of

@@ -172,6 +172,7 @@ WebSocket `face_detection` message:
 | GET | `/api/cv/status` | pipeline state, FPS, counters, error |
 | GET | `/api/cv/detections` | latest boxes (no image) |
 | GET | `/api/cv/frame` | latest boxes + base64 JPEG snapshot |
+| GET | `/api/cv/stream` | **MJPEG feed (Phase 7)** of the same frames the detector used |
 | POST | `/api/cv/start` | begin detection |
 | POST | `/api/cv/stop` | stop detection and **release the camera** |
 

@@ -21,9 +21,12 @@ import {
 import { config } from '@/config/env'
 import {
   getArduinoStatus,
+  getCVStatus,
   getHealth,
   getSensors,
+  startCv as apiStartCv,
   startMonitoring as apiStartMonitoring,
+  stopCv as apiStopCv,
   stopMonitoring as apiStopMonitoring,
   ApiError,
 } from '@/services/api'
@@ -31,6 +34,8 @@ import { useWebSocket } from '@/hooks/useWebSocket'
 import type {
   ArduinoStatusResponse,
   ConnectionState,
+  CVStatusResponse,
+  FaceBox,
   HealthResponse,
   MonitoringState,
   SensorReading,
@@ -80,6 +85,24 @@ interface SystemStatusValue {
   stopMonitoring: () => Promise<void>
   actionPending: boolean
   actionError: string | null
+
+  // ---- computer vision (Phase 6/7) ----
+  cvStatus: CVStatusResponse | null
+  /** Current detection set ONLY - never accumulated across frames. */
+  faces: FaceBox[]
+  faceCount: number
+  cvFps: number | null
+  cvDetector: string
+  cvFrameWidth: number | null
+  cvFrameHeight: number | null
+  /** Epoch ms of the most recent face_detection message. */
+  lastDetectionAt: number | null
+  cvError: string | null
+  startCv: () => Promise<void>
+  stopCv: () => Promise<void>
+  cvPending: boolean
+  /** MJPEG endpoint for the camera panel (null when the backend is down). */
+  cvStreamUrl: string | null
 }
 
 const SystemStatusContext = createContext<SystemStatusValue | null>(null)
@@ -96,6 +119,15 @@ export function SystemStatusProvider({ children }: { children: ReactNode }) {
 
   const [actionPending, setActionPending] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
+
+  // ---- CV state (Phase 6/7) ----
+  const [cvStatus, setCvStatus] = useState<CVStatusResponse | null>(null)
+  const [faces, setFaces] = useState<FaceBox[]>([])
+  const [faceCount, setFaceCount] = useState(0)
+  const [cvFps, setCvFps] = useState<number | null>(null)
+  const [cvFrameWidth, setCvFrameWidth] = useState<number | null>(null)
+  const [cvFrameHeight, setCvFrameHeight] = useState<number | null>(null)
+  const [lastDetectionAt, setLastDetectionAt] = useState<number | null>(null)
 
   const fetchHealth = useCallback(async (signal?: AbortSignal) => {
     try {
@@ -203,6 +235,25 @@ export function SystemStatusProvider({ children }: { children: ReactNode }) {
           break
         }
 
+        case 'face_detection': {
+          // Replace the whole current set. Never merge with the previous
+          // frame: a face that left must simply be absent, which is what
+          // makes the head count fall correctly.
+          const p = message.payload as Record<string, unknown>
+          const nextFaces = (p.faces as FaceBox[] | undefined) ?? []
+          setFaces(nextFaces)
+          setFaceCount(
+            typeof p.face_count === 'number' ? p.face_count : nextFaces.length,
+          )
+          setCvFps(typeof p.fps === 'number' ? p.fps : null)
+          setCvFrameWidth(typeof p.frame_width === 'number' ? p.frame_width : null)
+          setCvFrameHeight(
+            typeof p.frame_height === 'number' ? p.frame_height : null,
+          )
+          setLastDetectionAt(Date.now())
+          break
+        }
+
         default:
           break
       }
@@ -257,6 +308,44 @@ export function SystemStatusProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  // ---- CV actions ---------------------------------------------------
+  const refreshCv = useCallback(async () => {
+    try {
+      setCvStatus(await getCVStatus())
+    } catch {
+      /* backend down - healthError already reflects it */
+    }
+  }, [])
+
+  const handleStartCv = useCallback(async () => {
+    try {
+      await apiStartCv()
+      await refreshCv()
+    } catch (err) {
+      setActionError(
+        err instanceof ApiError ? err.message : 'Failed to start detection.',
+      )
+    }
+  }, [refreshCv])
+
+  const handleStopCv = useCallback(async () => {
+    try {
+      await apiStopCv()
+      // Clearing the faces immediately is correct: detection has stopped, so
+      // showing the previous boxes would be presenting stale data as live.
+      setFaces([])
+      setFaceCount(0)
+      setLastDetectionAt(null)
+      await refreshCv()
+    } catch (err) {
+      setActionError(
+        err instanceof ApiError ? err.message : 'Failed to stop detection.',
+      )
+    }
+  }, [refreshCv])
+
+  const cvPending = cvStatus?.cv === 'RUNNING' && !cvStatus.detector_ready
+
   const value = useMemo<SystemStatusValue>(
     () => ({
       health,
@@ -285,11 +374,27 @@ export function SystemStatusProvider({ children }: { children: ReactNode }) {
       stopMonitoring: handleStop,
       actionPending,
       actionError,
+
+      cvStatus,
+      faces,
+      faceCount,
+      cvFps,
+      cvDetector: cvStatus?.detector ?? '—',
+      cvFrameWidth,
+      cvFrameHeight,
+      lastDetectionAt,
+      cvError: cvStatus?.error ?? null,
+      startCv: handleStartCv,
+      stopCv: handleStopCv,
+      cvPending,
+      cvStreamUrl: health ? config.endpoints.cvStream : null,
     }),
     [
       health, healthError, loading, state, lastMessage, messageCount, fetchHealth,
       reconnectNow, arduino, latest, lastSensorAt, history, isStale,
       handleStart, handleStop, actionPending, actionError,
+      cvStatus, faces, faceCount, cvFps, cvFrameWidth, cvFrameHeight,
+      lastDetectionAt, handleStartCv, handleStopCv, cvPending,
     ],
   )
 

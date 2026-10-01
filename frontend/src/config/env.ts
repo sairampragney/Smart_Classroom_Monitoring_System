@@ -28,6 +28,13 @@ export const config = {
     arduinoPorts: `${trimTrailingSlash(API_BASE_URL)}/api/arduino/ports`,
     monitoringStart: `${trimTrailingSlash(API_BASE_URL)}/api/arduino/monitoring/start`,
     monitoringStop: `${trimTrailingSlash(API_BASE_URL)}/api/arduino/monitoring/stop`,
+    // Phase 6/7 computer vision
+    cvStatus: `${trimTrailingSlash(API_BASE_URL)}/api/cv/status`,
+    cvDetections: `${trimTrailingSlash(API_BASE_URL)}/api/cv/detections`,
+    // MJPEG feed served from the SAME frames the detector used.
+    cvStream: `${trimTrailingSlash(API_BASE_URL)}/api/cv/stream`,
+    cvStart: `${trimTrailingSlash(API_BASE_URL)}/api/cv/start`,
+    cvStop: `${trimTrailingSlash(API_BASE_URL)}/api/cv/stop`,
   },
   /** WebSocket endpoint. */
   wsUrl: `${trimTrailingSlash(WS_BASE_URL)}/ws`,

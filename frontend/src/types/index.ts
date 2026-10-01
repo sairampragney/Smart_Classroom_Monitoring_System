@@ -113,14 +113,8 @@ export interface SensorReading {
   received_at: string
 }
 
-/** Detected face box in SOURCE camera coordinates (Phase 6/7). */
-export interface FaceBox {
-  x: number
-  y: number
-  width: number
-  height: number
-  confidence: number
-}
+/* NOTE: FaceBox is defined once further down, next to the Phase 6/7 CV
+   contracts. Do not redeclare it here. */
 
 /** Server -> client WebSocket message types (see backend/app/models/ws.py). */
 export type WSMessageType =
@@ -160,6 +154,68 @@ export interface ArduinoStatusPayload {
   monitoring_running: boolean
   serial_port: string | null
 }
+
+// ---------------------------------------------------------------------------
+// Phase 6/7 Computer vision contracts
+//
+// Mirrors backend/app/models/cv.py and the `face_detection` WebSocket payload
+// produced by backend/app/services/cv_service.py.
+// ---------------------------------------------------------------------------
+
+/**
+ * One detected face, in SOURCE camera-frame pixels.
+ *
+ * Coordinate contract (see docs/COMPUTER_VISION.md):
+ *   origin (0,0) = top-left, +x right, +y down
+ *   units        = pixels of the source frame
+ */
+export interface FaceBox {
+  x: number
+  y: number
+  width: number
+  height: number
+  /** Real detector score 0..1, or null when the detector supplies none. */
+  confidence: number | null
+  /** 5 landmark points, or an empty list - never invented. */
+  landmarks?: number[][]
+}
+
+/** Payload of the `face_detection` WebSocket message. */
+export interface FaceDetectionPayload {
+  face_count: number
+  faces: FaceBox[]
+  frame_width: number
+  frame_height: number
+  detector: string
+  fps: number | null
+  frames_processed: number
+  processed_at: string
+}
+
+/** GET /api/cv/status */
+export interface CVStatusResponse {
+  cv: string
+  camera: string
+  detector: string
+  detector_ready: boolean
+  worker_running: boolean
+  camera_index: number
+  face_count: number
+  fps: number | null
+  frames_processed: number
+  source_width: number | null
+  source_height: number | null
+  error: string | null
+  last_update: string | null
+}
+
+/**
+ * How the CV panel should treat the data it is showing.
+ * - live  : frames arriving and detections current
+ * - stale : connection dropped or CV stopped; data must be marked as such
+ * - none  : nothing has ever arrived
+ */
+export type CvDataState = 'live' | 'stale' | 'none'
 
 /** Lifecycle of the frontend's own WebSocket link. */
 export type WsConnectionState = 'connecting' | 'open' | 'closed' | 'error'

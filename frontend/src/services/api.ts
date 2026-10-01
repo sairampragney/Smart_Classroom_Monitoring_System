@@ -9,6 +9,7 @@
 import { config } from '@/config/env'
 import type {
   ArduinoStatusResponse,
+  CVStatusResponse,
   HealthResponse,
   MonitoringResponse,
   SensorResponse,
@@ -61,6 +62,20 @@ export function getArduinoStatus(signal?: AbortSignal): Promise<ArduinoStatusRes
 /** Latest accepted sensor reading; nulls when nothing has arrived. */
 export function getSensors(signal?: AbortSignal): Promise<SensorResponse> {
   return request<SensorResponse>(config.endpoints.arduinoSensors, undefined, signal)
+}
+
+/** Start/stop the CV engine (Phase 7). */
+export function startCv(signal?: AbortSignal): Promise<{ cv: string; camera: string; message: string }> {
+  return request(config.endpoints.cvStart, { method: 'POST' }, signal)
+}
+
+export function stopCv(signal?: AbortSignal): Promise<{ cv: string; camera: string; message: string }> {
+  return request(config.endpoints.cvStop, { method: 'POST' }, signal)
+}
+
+/** Current CV pipeline status (Phase 7). */
+export function getCVStatus(signal?: AbortSignal): Promise<CVStatusResponse> {
+  return request<CVStatusResponse>(config.endpoints.cvStatus, undefined, signal)
 }
 
 /**

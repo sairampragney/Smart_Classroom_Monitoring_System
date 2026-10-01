@@ -33,6 +33,7 @@ progress tracker.
 | 4 | Arduino ↔ Backend Connection | ✅ Complete |
 | 5 | Frontend ↔ Backend Real-Time | ✅ Complete |
 | 6 | Computer Vision Engine | ✅ Complete |
+| 7 | Computer Vision Frontend | ✅ Complete |
 | 3 | Arduino Firmware | ⏳ Pending |
 | 4 | Arduino ↔ Backend Connection | ⏳ Pending |
 | 5 | Frontend ↔ Backend Real-Time Connection | ⏳ Pending |
@@ -228,6 +229,20 @@ Invoke-RestMethod -Method POST http://localhost:8000/api/cv/stop   # releases ca
 | `GET /api/cv/frame` | latest boxes + base64 JPEG snapshot |
 | `POST /api/cv/start` | begin detection |
 | `POST /api/cv/stop` | stop and release the camera |
+| `GET /api/cv/stream` | **MJPEG feed of the backend's own frames** |
+
+### The CV page (Phase 7)
+
+Open **Computer Vision** in the app and press **START DETECTION**. The panel
+shows the backend's live camera feed with green `FACE DETECTED` boxes, a large
+`HEAD COUNT`, and the real camera/detection state, measured FPS and detector
+name.
+
+The video is **not** a second camera capture. The MJPEG stream
+(`/api/cv/stream`) serves the exact frames the detector processed, so the box
+is always locked to the face it describes. Bounding boxes are converted to
+percentages of the source frame, and the panel takes the source aspect ratio,
+so alignment holds at any window size.
 
 ### Detector
 
