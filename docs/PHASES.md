@@ -31,7 +31,7 @@ README skeleton, and phase plan.
 
 ---
 
-## Phase 1 — Frontend Foundation
+## Phase 1 — Frontend Foundation ⛔ NOT STARTED
 
 **Objective:** React + Vite + TypeScript app with routing, navigation, the
 **Dark Violet AI + IoT Command Center** design system, responsive layout, and
@@ -40,15 +40,23 @@ page skeletons for all six pages.
 Deliverables: `Dashboard`, `Live Monitoring`, `Computer Vision`, `ML Analysis`,
 `History`, `System`.
 
+> **Reality check (recorded after Phase 2):** no Phase 1 code, commit or branch
+> exists. `frontend/` holds only empty directories created during Phase 0
+> scaffolding. This phase still needs to be implemented.
+
 ---
 
-## Phase 2 — Backend Foundation
+## Phase 2 — Backend Foundation ✅
 
 **Objective:** FastAPI application, centralized config, logging, `/health`
 endpoint, CORS, and the WebSocket foundation.
 
 Deliverables: `backend/main.py`, `config.py`, logging, health endpoint,
 `websocket_manager.py`.
+
+Verified: 24/24 pytest passing; `/health`, `/api/status`, `/docs`,
+`/openapi.json` all return 200; `/ws` handshake, ping/pong and error handling
+confirmed over a real WebSocket connection.
 
 ---
 

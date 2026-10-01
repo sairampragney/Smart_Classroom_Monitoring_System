@@ -27,8 +27,8 @@ progress tracker.
 | Phase | Name | Status |
 | --- | --- | --- |
 | 0 | Project Initialization | ✅ Complete |
-| 1 | Frontend Foundation | ⏳ Pending |
-| 2 | Backend Foundation | ⏳ Pending |
+| 1 | Frontend Foundation | ⛔ **Not started** (see note) |
+| 2 | Backend Foundation | ✅ Complete |
 | 3 | Arduino Firmware | ⏳ Pending |
 | 4 | Arduino ↔ Backend Connection | ⏳ Pending |
 | 5 | Frontend ↔ Backend Real-Time Connection | ⏳ Pending |
@@ -42,6 +42,12 @@ progress tracker.
 | 13 | Final Testing & Quality | ⏳ Pending |
 
 See [`docs/PHASES.md`](docs/PHASES.md) for the full phase plan.
+
+> **Note on Phase 1:** Phase 1 was reported as complete, but no Phase 1 code,
+> commit, or branch exists in this repository — `frontend/` still contains only
+> empty scaffolding directories. Phase 2 therefore proceeded against an absent
+> frontend, and no frontend build could be verified. Phase 1 still needs to be
+> implemented.
 
 ---
 
@@ -153,6 +159,85 @@ npm run dev
 ```
 
 Then open <http://localhost:5173>.
+
+---
+
+## Backend Setup (Phase 2+)
+
+The backend lives in `backend/` and runs on **http://localhost:8000**.
+
+```powershell
+# One-time setup
+python -m venv backend\.venv
+.\backend\.venv\Scripts\Activate.ps1
+pip install -r backend\requirements.txt
+
+# Start (from the project root)
+uvicorn backend.main:app --reload --port 8000
+```
+
+Or without activating the venv:
+
+```powershell
+.\backend\.venv\Scripts\python.exe -m uvicorn backend.main:app --reload --port 8000
+```
+
+Then verify:
+
+```powershell
+Invoke-WebRequest http://localhost:8000/health | Select-Object -ExpandProperty Content
+```
+
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /health` | Structured health JSON |
+| `GET /api/status` | Alias of `/health` |
+| `WS /ws` | Real-time channel |
+| `GET /docs` | Swagger UI |
+
+### Run the backend tests
+
+```powershell
+.\backend\.venv\Scripts\python.exe -m pytest backend/tests -v
+```
+
+### Backend structure
+
+```text
+backend/
+├── main.py                 # App factory, CORS, lifespan
+├── requirements.txt
+├── app/
+│   ├── config.py           # pydantic-settings (all env vars)
+│   ├── logging_config.py   # console + rotating file logging
+│   ├── api/
+│   │   ├── health.py       # /health, /api/status
+│   │   └── ws.py           # /ws endpoint
+│   ├── models/
+│   │   ├── common.py       # ConnectionState / CVState / MLState enums
+│   │   ├── health.py       # health & status schemas
+│   │   └── ws.py           # WebSocket message protocol
+│   └── services/
+│       ├── state.py        # thread-safe StateStore (single source of truth)
+│       └── websocket_manager.py
+└── tests/
+```
+
+### WebSocket message protocol
+
+Every server → client message uses one envelope:
+
+```json
+{
+  "type": "system_status",
+  "timestamp": "2026-10-01T12:39:26Z",
+  "payload": { "arduino": "DISCONNECTED", "cv": "STOPPED" }
+}
+```
+
+Message types in Phase 2: `hello`, `system_status`, `pong`, `error`.
+Reserved for later phases: `sensor_reading`, `arduino_status`, `program_status`,
+`cv_frame`, `face_detection`, `ml_prediction`.
 
 ---
 
