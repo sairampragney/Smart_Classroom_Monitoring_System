@@ -22,10 +22,22 @@ export const config = {
   endpoints: {
     health: `${trimTrailingSlash(API_BASE_URL)}/health`,
     status: `${trimTrailingSlash(API_BASE_URL)}/api/status`,
-    history: `${trimTrailingSlash(API_BASE_URL)}/api/history`,
+    // Phase 4 Arduino endpoints
+    arduinoStatus: `${trimTrailingSlash(API_BASE_URL)}/api/arduino/status`,
+    arduinoSensors: `${trimTrailingSlash(API_BASE_URL)}/api/arduino/sensors`,
+    arduinoPorts: `${trimTrailingSlash(API_BASE_URL)}/api/arduino/ports`,
+    monitoringStart: `${trimTrailingSlash(API_BASE_URL)}/api/arduino/monitoring/start`,
+    monitoringStop: `${trimTrailingSlash(API_BASE_URL)}/api/arduino/monitoring/stop`,
   },
   /** WebSocket endpoint. */
   wsUrl: `${trimTrailingSlash(WS_BASE_URL)}/ws`,
+  /**
+   * A reading older than this is shown as STALE rather than live.
+   * The firmware samples every 1000 ms, so 5 s is a generous margin.
+   */
+  staleAfterMs: 5000,
+  /** Rolling chart window (number of retained points). */
+  chartPointLimit: 60,
   /** Reconnect backoff bounds (ms). */
   reconnect: {
     initialDelayMs: 1000,

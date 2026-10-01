@@ -5,23 +5,41 @@ import { StatusPill, KeyValue } from '@/components/ui/StatusPill'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Button } from '@/components/ui/Button'
 import { useSystemStatus } from '@/context/SystemStatusContext'
-import { toneForState } from '@/utils/status'
+import {
+  toneForState,
+  formatSensorValue,
+  formatAge,
+  freshnessLabel,
+  type Freshness,
+} from '@/utils/status'
 
 export function Dashboard() {
-  const { health, healthError, loading, wsState, refreshHealth, reconnectWs } =
-    useSystemStatus()
+  const {
+    health,
+    healthError,
+    wsState,
+    connectionState,
+    monitoring,
+    monitoringRunning,
+    serialPort,
+    latest,
+    lastSensorAt,
+    isStale,
+    refreshHealth,
+    reconnectWs,
+  } = useSystemStatus()
 
   const services = health?.services
-  // Sensor/CV/ML values are genuinely unavailable until later phases, so the
-  // cards stay in their pending state instead of showing invented numbers.
-  const sensorsPending = !health?.components?.length
-  const cvPending = !services || services.cv === 'STOPPED'
+  const freshness: Freshness =
+    lastSensorAt === null ? 'none' : isStale ? 'stale' : 'live'
+  const hint =
+    freshness === 'none' ? 'No data' : freshness === 'stale' ? 'Last known' : 'Live'
 
   return (
     <>
       <PageHeader
         title="Dashboard"
-        description="Command-centre overview of the classroom monitoring system. Every value below comes from the backend's real runtime state."
+        description="Command-centre overview. Every value below comes from the backend's real runtime state."
         action={
           <>
             <Button variant="outline" size="sm" onClick={refreshHealth}>
@@ -36,7 +54,9 @@ export function Dashboard() {
 
       {healthError && (
         <div className="mb-6 rounded-xl border border-status-bad/30 bg-status-bad/10 px-4 py-3">
-          <p className="text-sm font-semibold text-status-bad">Backend unreachable</p>
+          <p className="text-sm font-semibold text-status-bad">
+            Backend unreachable
+          </p>
           <p className="mt-1 text-xs text-fg-muted">{healthError}</p>
           <p className="mt-1 text-xs text-fg-muted">
             Start it with:{' '}
@@ -53,36 +73,66 @@ export function Dashboard() {
           label="ML Occupancy"
           value={null}
           pending
-          hint="Awaiting live data"
+          hint="Awaiting Phase 8"
         />
         <StatCard
           label="CV Head Count"
-          value={services?.cv === 'RUNNING' ? 0 : null}
-          pending={cvPending}
-          hint="Awaiting live data"
+          value={null}
+          pending
+          hint="Awaiting Phase 6"
         />
         <StatCard
           label="WebSocket"
           value={wsState.toUpperCase()}
-          hint={
-            health ? `${health.websocket_clients} client(s)` : 'No backend response'
-          }
+          hint={health ? `${health.websocket_clients} client(s)` : 'No backend'}
         />
         <StatCard
-          label="Uptime"
-          value={health ? `${Math.floor(health.uptime_s)}s` : null}
-          pending={!health}
-          hint={health ? `Backend v${health.version}` : 'Awaiting live data'}
+          label="Monitoring"
+          value={monitoring}
+          hint={monitoringRunning ? 'Streaming' : 'Idle'}
         />
       </div>
 
-      {/* ---- Environmental sensors ---- */}
+      {/* ---- Environmental sensors (real values or honest "no data") ---- */}
       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Temperature" value={null} unit="°C" pending />
-        <StatCard label="Humidity" value={null} unit="%" pending />
-        <StatCard label="Light" value={null} unit="ADC" pending />
-        <StatCard label="Motion" value={null} pending />
+        <StatCard
+          label="Temperature"
+          value={formatSensorValue(latest?.temperature, 1)}
+          unit="°C"
+          pending={freshness === 'none'}
+          hint={hint}
+        />
+        <StatCard
+          label="Humidity"
+          value={formatSensorValue(latest?.humidity, 1)}
+          unit="%"
+          pending={freshness === 'none'}
+          hint={hint}
+        />
+        <StatCard
+          label="Light"
+          value={latest?.light ?? null}
+          unit="ADC"
+          pending={freshness === 'none'}
+          hint={hint}
+        />
+        <StatCard
+          label="Motion"
+          value={
+            latest?.motion === null || latest?.motion === undefined
+              ? null
+              : latest.motion
+                ? 'DETECTED'
+                : 'Clear'
+          }
+          pending={freshness === 'none'}
+          hint={hint}
+        />
       </div>
+
+      <p className="mt-3 text-xs text-fg-muted">
+        Data state: {freshnessLabel(freshness)} · last update {formatAge(lastSensorAt)}
+      </p>
 
       {/* ---- Integrations ---- */}
       <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -91,22 +141,19 @@ export function Dashboard() {
           <CardBody className="space-y-1">
             <KeyValue
               label="Arduino"
-              value={services?.arduino ?? 'UNKNOWN'}
-              tone={toneForState(services?.arduino)}
+              value={connectionState}
+              tone={toneForState(connectionState)}
             />
-            <KeyValue
-              label="Serial port"
-              value={services?.serial_port ?? 'Not connected'}
-            />
+            <KeyValue label="Serial port" value={serialPort ?? 'Not connected'} />
             <KeyValue
               label="Serial"
-              value={services?.serial ?? 'UNKNOWN'}
+              value={services?.serial ?? 'DISCONNECTED'}
               tone={toneForState(services?.serial)}
             />
             <KeyValue
-              label="Camera"
-              value={services?.camera ?? 'UNKNOWN'}
-              tone={toneForState(services?.camera)}
+              label="Monitoring"
+              value={monitoring}
+              tone={monitoringRunning ? 'ok' : 'idle'}
             />
           </CardBody>
         </Card>
@@ -122,39 +169,28 @@ export function Dashboard() {
               />
             </div>
             <KeyValue
-              label="Monitoring"
-              value={services?.monitoring_running ? 'RUNNING' : 'STOPPED'}
-              tone={services?.monitoring_running ? 'ok' : 'idle'}
+              label="Backend"
+              value={health ? 'CONNECTED' : 'UNAVAILABLE'}
+              tone={health ? 'ok' : 'bad'}
             />
             <p className="pt-1 text-xs leading-relaxed text-fg-muted">
-              This system runs in <strong className="text-fg">real hardware mode</strong>.
-              No simulated sensor values, faces or predictions are generated.
+              Runs in <strong className="text-fg">real hardware mode</strong>. No
+              simulated sensor values are generated.
             </p>
           </CardBody>
         </Card>
 
         <Card>
-          <CardHeader title="Live Data" subtitle="Awaiting Phase 4-8 services" />
+          <CardHeader title="Pending services" subtitle="Later phases" />
           <CardBody>
             <EmptyState
-              title="No live signals yet"
-              description="Sensor readings, face detection and ML predictions appear here once the Arduino, CV and ML services are implemented."
-              phase="Phases 4 · 6 · 8"
+              title="CV and ML not initialized"
+              description="Face detection (Phase 6) and machine learning (Phase 8) are not implemented yet. No values are shown for them."
+              phase="Phases 6 · 8"
             />
           </CardBody>
         </Card>
       </div>
-
-      {loading && (
-        <p className="mt-6 text-center text-xs text-fg-muted">
-          Contacting backend…
-        </p>
-      )}
-      {sensorsPending && !healthError && (
-        <p className="mt-6 text-center text-xs text-fg-muted/70">
-          Sensor cards remain pending until the Arduino service is connected.
-        </p>
-      )}
     </>
   )
 }

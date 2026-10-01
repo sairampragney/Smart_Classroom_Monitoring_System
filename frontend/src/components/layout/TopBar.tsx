@@ -16,11 +16,12 @@ const WS_LABEL: Record<string, string> = {
 }
 
 export function TopBar({ onOpenMenu, title }: TopBarProps) {
-  const { health, healthError, wsState } = useSystemStatus()
+  const { health, healthError, wsState, connectionState, monitoringRunning } =
+    useSystemStatus()
 
   // Backend is "ok" only when a real health response came back.
   const backendTone = healthError || !health ? 'bad' : toneForState(health.status)
-  const arduinoState = health?.services.arduino ?? 'DISCONNECTED'
+  const arduinoConnected = connectionState === 'CONNECTED'
   const demoMode = health?.demo_mode === true
 
   return (
@@ -66,11 +67,14 @@ export function TopBar({ onOpenMenu, title }: TopBarProps) {
           />
 
           <StatusPill
-            label={arduinoState === 'CONNECTED' ? 'Arduino' : 'No Arduino'}
-            tone={toneForState(arduinoState)}
-            pulse={arduinoState === 'CONNECTED'}
+            label={arduinoConnected ? 'Arduino Connected' : 'Arduino Disconnected'}
+            tone={toneForState(connectionState)}
+            pulse={arduinoConnected}
             className="hidden md:inline-flex"
           />
+          {monitoringRunning && (
+            <StatusPill label="Live" tone="ok" pulse className="hidden lg:inline-flex" />
+          )}
         </div>
       </div>
     </header>

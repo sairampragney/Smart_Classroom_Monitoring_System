@@ -31,6 +31,7 @@ progress tracker.
 | 2 | Backend Foundation | ✅ Complete |
 | 3 | Arduino Firmware | ✅ Complete |
 | 4 | Arduino ↔ Backend Connection | ✅ Complete |
+| 5 | Frontend ↔ Backend Real-Time | ✅ Complete |
 | 3 | Arduino Firmware | ⏳ Pending |
 | 4 | Arduino ↔ Backend Connection | ⏳ Pending |
 | 5 | Frontend ↔ Backend Real-Time Connection | ⏳ Pending |
@@ -371,6 +372,62 @@ This is a normal, fully-supported state:
 ```
 
 These use a fake serial device. **They do not prove physical hardware works.**
+
+---
+
+## Real-Time Data Flow (Phase 5)
+
+```text
+Arduino ──USB──> pyserial ──> StateStore ──> StateBroadcaster ──> WS /ws
+                                                                   │
+                                                                   ▼
+                                        SystemStatusContext (ONE socket)
+                                                                   │
+                        ┌──────────────────────┬───────────────────┴────────┐
+                        ▼                      ▼                            ▼
+                   Live Monitoring         Dashboard                    System
+```
+
+### Backend
+
+A broadcaster task polls the StateStore every 200 ms and emits a message **only
+when something changed**, so an idle system produces zero traffic.
+
+| Message | Emitted when |
+| --- | --- |
+| `hello` | on connect (protocol + mode) |
+| `system_status` | on connect (full snapshot) |
+| `arduino_status` | connection / monitoring / port state changed |
+| `sensor_reading` | a new validated sample arrived |
+| `pong` | reply to a client `ping` |
+
+Envelope: `{ "type", "timestamp", "payload" }`.
+
+### Frontend
+
+`SystemStatusContext` owns **one** WebSocket for the whole app, so navigating
+between pages never creates a duplicate connection. It re-connects with
+exponential backoff (1s → 15s cap) and surfaces
+`CONNECTING / OPEN / CLOSED / ERROR`.
+
+### Data freshness
+
+The UI distinguishes three states and never presents stale data as live:
+
+| State | Meaning | Card shows |
+| --- | --- | --- |
+| `Live` | a reading arrived recently | the real value |
+| `Stale` | last known value, older than 5 s | the real value + "Last known value" |
+| `No data` | nothing ever received | `--` + "No data" |
+
+A `null` from the firmware (failed DHT22 read) is rendered as `--`, **never**
+as `0`.
+
+### Charts
+
+Recharts renders Temperature, Humidity and Light from received data only.
+The window is bounded to the last 60 points. Motion is boolean, so it uses a
+discrete state strip rather than a misleading continuous line.
 
 ### WebSocket message protocol
 

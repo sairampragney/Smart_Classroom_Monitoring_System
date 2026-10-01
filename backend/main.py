@@ -27,6 +27,7 @@ from app.api.arduino import router as arduino_router  # noqa: E402
 from app.api.ws import router as ws_router  # noqa: E402
 from app.config import get_settings  # noqa: E402
 from app.logging_config import get_logger, setup_logging  # noqa: E402
+from app.services.broadcaster import broadcaster
 from app.services.serial_manager import serial_manager  # noqa: E402
 from app.services.websocket_manager import ws_manager  # noqa: E402
 
@@ -55,9 +56,14 @@ async def lifespan(app: FastAPI):
     # backend still starts cleanly.
     logger.info("Serial manager ready (monitoring is OFF until requested)")
 
+    # Phase 5: push state changes (sensor_reading / arduino_status) to clients.
+    broadcaster.start()
+
     yield
 
     logger.info("Shutting down; closing %d WebSocket client(s)", ws_manager.client_count)
+    # Phase 5: stop the broadcaster so no task is left running.
+    await broadcaster.stop()
     # Phase 4: stop the serial worker so no thread or COM handle is leaked.
     serial_manager.stop()
 

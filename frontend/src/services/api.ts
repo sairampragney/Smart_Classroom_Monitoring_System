@@ -7,7 +7,12 @@
  */
 
 import { config } from '@/config/env'
-import type { HealthResponse } from '@/types'
+import type {
+  ArduinoStatusResponse,
+  HealthResponse,
+  MonitoringResponse,
+  SensorResponse,
+} from '@/types'
 
 /** Error carrying the HTTP status so the UI can report it accurately. */
 export class ApiError extends Error {
@@ -20,10 +25,14 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(url: string, signal?: AbortSignal): Promise<T> {
+async function request<T>(
+  url: string,
+  init?: RequestInit,
+  signal?: AbortSignal,
+): Promise<T> {
   let response: Response
   try {
-    response = await fetch(url, { signal, headers: { Accept: 'application/json' } })
+    response = await fetch(url, { ...init, signal })
   } catch (err) {
     if (err instanceof DOMException && err.name === 'AbortError') throw err
     // Network-level failure: backend down or blocked by CORS.
@@ -41,5 +50,36 @@ async function request<T>(url: string, signal?: AbortSignal): Promise<T> {
 
 /** Fetch the backend health snapshot. */
 export function getHealth(signal?: AbortSignal): Promise<HealthResponse> {
-  return request<HealthResponse>(config.endpoints.health, signal)
+  return request<HealthResponse>(config.endpoints.health, undefined, signal)
+}
+
+/** Current Arduino connection + monitoring state (Phase 4). */
+export function getArduinoStatus(signal?: AbortSignal): Promise<ArduinoStatusResponse> {
+  return request<ArduinoStatusResponse>(config.endpoints.arduinoStatus, undefined, signal)
+}
+
+/** Latest accepted sensor reading; nulls when nothing has arrived. */
+export function getSensors(signal?: AbortSignal): Promise<SensorResponse> {
+  return request<SensorResponse>(config.endpoints.arduinoSensors, undefined, signal)
+}
+
+/**
+ * Start monitoring. This is the backend half of the RUN PROGRAM button and
+ * does NOT upload firmware - the board firmware must already be running.
+ */
+export function startMonitoring(signal?: AbortSignal): Promise<MonitoringResponse> {
+  return request<MonitoringResponse>(
+    config.endpoints.monitoringStart,
+    { method: 'POST' },
+    signal,
+  )
+}
+
+/** Stop monitoring. The backend keeps running and can be restarted later. */
+export function stopMonitoring(signal?: AbortSignal): Promise<MonitoringResponse> {
+  return request<MonitoringResponse>(
+    config.endpoints.monitoringStop,
+    { method: 'POST' },
+    signal,
+  )
 }

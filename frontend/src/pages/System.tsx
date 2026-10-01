@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/Button'
 import { KeyValue } from '@/components/ui/StatusPill'
 import { useSystemStatus } from '@/context/SystemStatusContext'
 import { toneForState, formatTime, type StatusTone } from '@/utils/status'
-import type { ConnectionState, CVState, MLState } from '@/types'
 
 interface Row {
   name: string
@@ -19,11 +18,12 @@ function buildRows(
   health: ReturnType<typeof useSystemStatus>['health'],
   wsState: string,
   loading: boolean,
+  connectionState: string,
+  monitoringRunning: boolean,
+  readingsReceived: number,
 ): Row[] {
   const s = health?.services
   const backendUp = Boolean(health) && !loading
-
-  const conn = (v: ConnectionState | undefined): StatusTone => toneForState(v)
 
   return [
     {
@@ -53,42 +53,65 @@ function buildRows(
     },
     {
       name: 'Arduino',
-      state: s?.arduino ?? 'UNKNOWN',
-      detail: s?.serial_port ? `Port ${s.serial_port}` : 'No serial port bound',
-      tone: conn(s?.arduino),
+      state: connectionState,
+      detail: monitoringRunning ? 'Monitoring active' : 'Board state',
+      tone: toneForState(connectionState),
     },
     {
       name: 'Serial',
-      state: s?.serial ?? 'UNKNOWN',
-      detail: 'pyserial transport',
-      tone: conn(s?.serial),
+      state: s?.serial ?? connectionState,
+      detail: s?.serial_port ? `Port ${s.serial_port}` : 'pyserial transport',
+      tone: toneForState(s?.serial ?? connectionState),
     },
     {
       name: 'Camera',
-      state: s?.camera ?? 'UNKNOWN',
-      detail: 'Capture device',
-      tone: conn(s?.camera),
+      state: 'NOT INITIALIZED',
+      detail: 'Implemented in Phase 6',
+      tone: 'idle',
     },
     {
       name: 'Computer Vision',
-      state: (s?.cv ?? 'STOPPED') as CVState,
-      detail: 'OpenCV detection pipeline',
-      tone: s?.cv === 'RUNNING' ? 'ok' : 'idle',
+      state: 'NOT INITIALIZED',
+      detail: 'Implemented in Phase 6',
+      tone: 'idle',
     },
     {
       name: 'ML Model',
-      state: (s?.ml ?? 'NOT_LOADED') as MLState,
-      detail: 'scikit-learn estimator',
-      tone: s?.ml === 'LOADED' ? 'ok' : 'idle',
+      state: 'NOT INITIALIZED',
+      detail: 'Implemented in Phase 8',
+      tone: 'idle',
+    },
+    {
+      name: 'Sensor Readings',
+      state: readingsReceived > 0 ? 'STREAMING' : 'NO DATA',
+      detail: `${readingsReceived} accepted packet(s)`,
+      tone: readingsReceived > 0 ? 'ok' : 'idle',
     },
   ]
 }
 
 export default function System() {
-  const { health, healthError, loading, wsState, messageCount, refreshHealth, reconnectWs } =
-    useSystemStatus()
+  const {
+    health,
+    healthError,
+    loading,
+    wsState,
+    messageCount,
+    connectionState,
+    monitoringRunning,
+    arduino,
+    refreshHealth,
+    reconnectWs,
+  } = useSystemStatus()
 
-  const rows = buildRows(health, wsState, loading)
+  const rows = buildRows(
+    health,
+    wsState,
+    loading,
+    connectionState,
+    monitoringRunning,
+    arduino?.readings_received ?? 0,
+  )
   const healthyCount = rows.filter((r) => r.tone === 'ok').length
 
   return (

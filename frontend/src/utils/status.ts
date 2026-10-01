@@ -65,3 +65,60 @@ export function formatTime(iso: string | null | undefined): string {
   if (Number.isNaN(d.getTime())) return '—'
   return d.toLocaleTimeString()
 }
+
+/**
+ * Sensor display helpers.
+ *
+ * The firmware emits JSON `null` when a DHT22 read fails. These helpers make
+ * it impossible for a component to accidentally render that as 0.
+ */
+
+export type Freshness = 'live' | 'stale' | 'none'
+
+/** Decide how a value should be presented. */
+export function freshnessOf(
+  lastSensorAt: number | null,
+  staleAfterMs: number,
+  now = Date.now(),
+): Freshness {
+  if (lastSensorAt === null) return 'none'
+  return now - lastSensorAt > staleAfterMs ? 'stale' : 'live'
+}
+
+/**
+ * Format a sensor value for display.
+ *
+ * Returns `'--'` for null/undefined so the UI can show "no data" instead of
+ * a misleading zero. The unit is appended by the caller so the raw number
+ * stays available for charts.
+ */
+export function formatSensorValue(
+  value: number | null | undefined,
+  decimals = 1,
+): string {
+  if (value === null || value === undefined || Number.isNaN(value)) return '--'
+  return value.toFixed(decimals)
+}
+
+/** Human-readable age of the last reading, e.g. "3s ago". */
+export function formatAge(lastSensorAt: number | null, now = Date.now()): string {
+  if (lastSensorAt === null) return 'never'
+  const seconds = Math.max(0, Math.round((now - lastSensorAt) / 1000))
+  if (seconds < 2) return 'just now'
+  if (seconds < 60) return `${seconds}s ago`
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) return `${minutes}m ago`
+  return `${Math.floor(minutes / 60)}h ago`
+}
+
+/** Label describing the current data state, for the freshness badge. */
+export function freshnessLabel(freshness: Freshness): string {
+  switch (freshness) {
+    case 'live':
+      return 'Live'
+    case 'stale':
+      return 'Stale'
+    default:
+      return 'No data'
+  }
+}

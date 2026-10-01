@@ -121,6 +121,23 @@ Deliverables: `useWebSocket` hook, API service, Live Monitoring wiring.
 
 ---
 
+## Phase 5 — Frontend ↔ Backend Real-Time Connection ✅
+
+**Objective:** bind the existing frontend to the real backend — WebSocket
+streaming, Arduino status, RUN PROGRAM, live sensor values and live charts.
+
+Deliverables: state broadcaster, sensor/Arduino types, single-socket context,
+live monitoring page, charts, dashboard/system integration.
+
+Verified: 135 automated tests pass; production build succeeds; all six routes
+and all modules transform; live WebSocket confirmed pushing `arduino_status` on
+real RUN PROGRAM state changes; client accounting exact with no leaks.
+
+> **Hardware testing NOT performed** — no Arduino connected, so no real sensor
+> values have ever flowed through this path.
+
+---
+
 ## Phase 6 — Computer Vision Engine
 
 **Objective:** real camera capture, face detection, multi-face support,
