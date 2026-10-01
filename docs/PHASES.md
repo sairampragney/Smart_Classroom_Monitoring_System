@@ -252,12 +252,31 @@ suppression confirmed** (6 identical ticks → 1 row).
 
 ---
 
-## Phase 10 — System Monitoring
+## Phase 10 — System Monitoring ✅
 
 **Objective:** real health states for frontend, backend, WebSocket, Arduino,
-serial, camera, CV, and ML — all reflecting actual runtime state.
+serial, camera, CV, ML and the database — all reflecting actual runtime state.
 
-Deliverables: health aggregation endpoint + System page.
+The previous System page hardcoded `NOT INITIALIZED / "Implemented in Phase
+6/8"` for Camera, CV and ML. All ten required components now read live state.
+
+Changes:
+- `/health` extended (not duplicated) with real detector, measured FPS, head
+  count, the model actually in memory, and a live database probe
+- status logic extracted into pure functions (`utils/systemStatus.ts`)
+- System page rewritten: overview, component health, technical details
+- real-time updates via the existing shared WebSocket plus a 2 s health poll
+
+Verified: 226 backend tests (14 new) · 90 new frontend status checks · build
+passes · 9 live endpoints return 200 · WebSocket handshake and
+`system_status` / `arduino_status` verified live.
+
+> **Hardware verification unchanged:** no physical Arduino or camera connected.
+> Hardware states were observed as `DISCONNECTED` / `NOT_INITIALIZED`, which
+> confirms honest reporting but is **not** proof that a connected device is
+> detected correctly.
+
+Full documentation: [`SYSTEM_MONITORING.md`](SYSTEM_MONITORING.md).
 
 ---
 

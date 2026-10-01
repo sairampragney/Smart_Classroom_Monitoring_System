@@ -27,7 +27,10 @@ def test_health_returns_ok(client):
     assert r.status_code == 200
     body = r.json()
     assert body["status"] == "ok"
-    assert body["phase"] == "2"
+    # The phase marker tracks the real current phase. It was hardcoded to "2"
+    # from Phase 2 through Phase 9, which made the System page display a stale
+    # phase; Phase 10 made it accurate.
+    assert body["phase"] == "10"
     assert isinstance(body["uptime_s"], (int, float))
     assert isinstance(body["server_time"], str)
 

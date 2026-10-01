@@ -34,6 +34,15 @@ export interface ComponentHealth {
   healthy: boolean
 }
 
+export interface DatabaseStatus {
+  /** READY only after a real query succeeded. */
+  status: 'READY' | 'ERROR' | 'NOT_INITIALIZED'
+  rows: number
+  /** ISO-8601 UTC timestamp of the newest stored record, or null. */
+  last_record_ts: string | null
+  error: string | null
+}
+
 export interface ServiceStatus {
   arduino: ConnectionState
   serial: ConnectionState
@@ -43,6 +52,16 @@ export interface ServiceStatus {
   monitoring_running: boolean
   monitoring: MonitoringState
   serial_port: string | null
+  /** Real detector in use; never a hardcoded default when unknown. */
+  cv_detector: string | null
+  /** Measured FPS. Null until real frames were processed. */
+  cv_fps: number | null
+  /** Faces in the CURRENT frame. Null when CV has never run. */
+  head_count: number | null
+  /** Model actually in memory, not the configured artifact path. */
+  ml_model: string | null
+  ml_error: string | null
+  database: DatabaseStatus
 }
 
 export interface HealthResponse {

@@ -36,6 +36,7 @@ progress tracker.
 | 7 | Computer Vision Frontend | ✅ Complete |
 | 8 | Machine Learning | ✅ Complete |
 | 9 | History / Data Persistence | ✅ Complete |
+| 10 | System Monitoring | ✅ Complete |
 | 3 | Arduino Firmware | ⏳ Pending |
 | 4 | Arduino ↔ Backend Connection | ⏳ Pending |
 | 5 | Frontend ↔ Backend Real-Time Connection | ⏳ Pending |
@@ -396,6 +397,43 @@ Invoke-RestMethod http://localhost:8000/api/history/stats
 
 # Raw SQL (Python ships sqlite3; no extra tool needed)
 .\backend\.venv\Scripts\python.exe -c "import sqlite3;c=sqlite3.connect(r'backend\data\history.db');print(c.execute('SELECT COUNT(*) FROM history').fetchone())"
+```
+
+---
+
+## System Monitoring (Phase 10)
+
+The System page is a real health dashboard: every status is derived from live
+runtime state. Full documentation: [`docs/SYSTEM_MONITORING.md`](docs/SYSTEM_MONITORING.md).
+
+### Components monitored
+
+| Component | State source |
+| --- | --- |
+| Frontend | the browser (page is rendering) |
+| Backend / FastAPI | live `GET /health` response |
+| WebSocket | browser socket lifecycle (`useWebSocket`) |
+| Arduino | shared `StateStore`, pushed over the WebSocket |
+| Serial | shared `StateStore`, pushed over the WebSocket |
+| Camera | `StateStore` + CV lifecycle |
+| Computer Vision | `StateStore` + measured FPS / head count |
+| ML Model | `StateStore` + the model actually loaded in memory |
+| Database | a real query against the SQLite file |
+
+### Key rules
+
+- **No hardcoded status.** `Arduino` shows `DISCONNECTED` when no board exists.
+- **No stale green.** When the backend is unreachable, every backend-derived
+  component becomes `NOT_AVAILABLE` — the last known state is never replayed.
+- **No fabricated measurements.** FPS and head count are `null` (rendered `--`)
+  until real frames have been processed.
+- **One disconnected component is not "the system is down".** Arduino being
+  unplugged does not turn the database red.
+
+### Checking status from the shell
+
+```powershell
+Invoke-RestMethod http://localhost:8000/health | ConvertTo-Json -Depth 5
 ```
 
 ---

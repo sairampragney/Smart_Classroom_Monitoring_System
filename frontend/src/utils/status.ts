@@ -38,20 +38,34 @@ export const tone = {
   chip: (t: StatusTone) => TONE_CHIP[t],
 }
 
-/** Map a backend state string to a tone. */
+/**
+ * Map a backend state string to a tone.
+ *
+ * Transient states (CONNECTING / STARTING / RECONNECTING) are warnings, not
+ * errors - the system is in the middle of doing something, which is not the
+ * same as being broken. Idle-but-intentional states (STOPPED, DISCONNECTED,
+ * NOT_LOADED) stay neutral rather than alarming: an unplugged Arduino on a
+ * demo bench is a normal, correct state.
+ */
 export function toneForState(state: string | null | undefined): StatusTone {
   switch (state) {
     case 'CONNECTED':
     case 'RUNNING':
     case 'LOADED':
+    case 'READY':
     case 'ok':
       return 'ok'
     case 'CONNECTING':
+    case 'RECONNECTING':
+    case 'STARTING':
+      return 'warn'
     case 'ERROR':
       return 'bad'
     case 'DISCONNECTED':
     case 'STOPPED':
     case 'NOT_LOADED':
+    case 'NOT_INITIALIZED':
+    case 'NOT_AVAILABLE':
       return 'idle'
     default:
       return 'violet'

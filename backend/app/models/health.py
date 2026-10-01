@@ -22,11 +22,32 @@ class ComponentHealth(BaseModel):
     healthy: bool = Field(default=True)
 
 
-class ServiceStatus(BaseModel):
-    """Aggregate status of the services that later phases will populate.
+class DatabaseStatus(BaseModel):
+    """Real health of the local history database (Phase 9/10).
 
-    In Phase 2 every field reports its honest initial value: nothing is wired up
-    yet, so serial/CV/ML are DISCONNECTED / STOPPED / NOT_LOADED.
+    ``status`` is derived from an actual query attempt, never assumed:
+
+    * ``READY``          - the schema is present and a real query succeeded
+    * ``NOT_INITIALIZED``- no database handle exists yet
+    * ``ERROR``          - the handle exists but the query failed
+    """
+
+    status: str = Field(default="NOT_INITIALIZED", examples=["READY"])
+    rows: int = Field(default=0, description="Records currently stored")
+    #: ISO-8601 UTC timestamp of the newest stored record, if any.
+    last_record_ts: datetime | None = None
+    error: str | None = Field(default=None, examples=["database is locked"])
+
+
+class ServiceStatus(BaseModel):
+    """Aggregate status of every backend service.
+
+    Lifecycle fields (``arduino``/``serial``/``camera``/``cv``/``ml``) come
+    from the shared StateStore, so they always reflect real runtime state.
+
+    Detail fields (detector, fps, head_count, ML model) are read from the
+    owning service object. They stay ``None`` whenever the service has never
+    run - a missing measurement is never replaced with a placeholder number.
     """
 
     arduino: ConnectionState = ConnectionState.DISCONNECTED
@@ -37,6 +58,18 @@ class ServiceStatus(BaseModel):
     monitoring_running: bool = False
     monitoring: MonitoringState = MonitoringState.STOPPED
     serial_port: str | None = Field(default=None, examples=["COM5"])
+
+    # ---- Phase 10: real detail for the System page ----
+    #: Actual detector name in use (e.g. "YuNet"), not the configured default.
+    cv_detector: str | None = None
+    #: Measured inference FPS. None until the pipeline has processed frames.
+    cv_fps: float | None = None
+    #: Faces visible in the CURRENT frame. None when CV has never run.
+    head_count: int | None = None
+    #: Name of the model actually loaded in memory, not the configured path.
+    ml_model: str | None = None
+    ml_error: str | None = None
+    database: DatabaseStatus = Field(default_factory=DatabaseStatus)
 
 
 class HealthResponse(BaseModel):
