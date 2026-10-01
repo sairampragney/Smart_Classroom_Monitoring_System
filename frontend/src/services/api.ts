@@ -11,6 +11,7 @@ import type {
   ArduinoStatusResponse,
   CVStatusResponse,
   HealthResponse,
+  HistoryResponse,
   MLInfo,
   MonitoringResponse,
   SensorResponse,
@@ -82,6 +83,18 @@ export function getCVStatus(signal?: AbortSignal): Promise<CVStatusResponse> {
 /** Trained model, dataset profile and every model's REAL metrics (Phase 8). */
 export function getMLInfo(signal?: AbortSignal): Promise<MLInfo> {
   return request<MLInfo>(config.endpoints.mlInfo, undefined, signal)
+}
+
+/** Recent monitoring history, newest first (Phase 9). */
+export function getHistory(
+  limit = 100,
+  signal?: AbortSignal,
+): Promise<HistoryResponse> {
+  return request<HistoryResponse>(
+    `${config.endpoints.history}?limit=${limit}`,
+    undefined,
+    signal,
+  )
 }
 
 /**

@@ -25,12 +25,15 @@ from app import __version__  # noqa: E402
 from app.api.health import router as health_router  # noqa: E402
 from app.api.arduino import router as arduino_router  # noqa: E402
 from app.api.cv import router as cv_router  # noqa: E402
+from app.api.history import router as history_router  # noqa: E402
 from app.api.ml import router as ml_router  # noqa: E402
 from app.api.ws import router as ws_router  # noqa: E402
 from app.config import get_settings  # noqa: E402
 from app.logging_config import get_logger, setup_logging  # noqa: E402
 from app.services.broadcaster import broadcaster
 from app.services.cv_service import cv_service  # noqa: E402
+from app.services.history_db import get_history_db  # noqa: E402
+from app.services.history_recorder import HistoryRecorder  # noqa: E402
 from app.services.ml_service import ml_service  # noqa: E402
 from app.services.serial_manager import serial_manager  # noqa: E402
 from app.services.websocket_manager import ws_manager  # noqa: E402
@@ -79,9 +82,19 @@ async def lifespan(app: FastAPI):
     else:
         logger.warning("ML model NOT available: %s", ml_service.error)
 
+    # Phase 9: create the SQLite schema if needed (never destructive) and
+    # start the recorder that samples the StateStore.
+    history_db = get_history_db()
+    recorder = HistoryRecorder(history_db)
+    recorder.start()
+    logger.info("History database ready: %s", history_db.path)
+
     yield
 
     logger.info("Shutting down; closing %d WebSocket client(s)", ws_manager.client_count)
+    # Phase 9: stop the recorder before releasing the serial worker so the
+    # final state can still be sampled.
+    recorder.stop()
     # Phase 6: release the camera before the process exits.
     cv_service.stop()
     # Phase 5: stop the broadcaster so no task is left running.
@@ -116,6 +129,7 @@ app.include_router(health_router)
 app.include_router(arduino_router)
 app.include_router(cv_router)
 app.include_router(ml_router)
+app.include_router(history_router)
 app.include_router(ws_router)
 
 

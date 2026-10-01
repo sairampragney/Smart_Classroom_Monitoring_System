@@ -39,6 +39,8 @@ export const config = {
     mlInfo: `${trimTrailingSlash(API_BASE_URL)}/api/ml/info`,
     mlStatus: `${trimTrailingSlash(API_BASE_URL)}/api/ml/status`,
     mlPredict: `${trimTrailingSlash(API_BASE_URL)}/api/ml/predict`,
+    // Phase 9 history
+    history: `${trimTrailingSlash(API_BASE_URL)}/api/history`,
   },
   /** WebSocket endpoint. */
   wsUrl: `${trimTrailingSlash(WS_BASE_URL)}/ws`,

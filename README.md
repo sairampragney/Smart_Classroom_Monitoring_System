@@ -35,6 +35,7 @@ progress tracker.
 | 6 | Computer Vision Engine | ✅ Complete |
 | 7 | Computer Vision Frontend | ✅ Complete |
 | 8 | Machine Learning | ✅ Complete |
+| 9 | History / Data Persistence | ✅ Complete |
 | 3 | Arduino Firmware | ⏳ Pending |
 | 4 | Arduino ↔ Backend Connection | ⏳ Pending |
 | 5 | Frontend ↔ Backend Real-Time Connection | ⏳ Pending |
@@ -338,6 +339,64 @@ visible faces.
 > the classroom LDR is a 0–1023 ADC, so raw LDR values sit outside the training
 > distribution. These metrics are measured on the public dataset and should not
 > be read as real-world classroom accuracy.
+
+---
+
+## History / Persistence (Phase 9)
+
+Local persistence of monitoring records. Full documentation:
+[`docs/HISTORY.md`](docs/HISTORY.md).
+
+### Database
+
+| Item | Value |
+| --- | --- |
+| Engine | **SQLite** (bundled with Python — no server, no credentials) |
+| Location | `backend/data/history.db` (git-ignored) |
+| Created | automatically on first backend start |
+| Concurrency | per-thread connections + WAL, so reads never block writes |
+| Timestamps | timezone-aware ISO-8601 **UTC** everywhere |
+
+### Schema
+
+```sql
+history(id, ts, temperature, humidity, light, motion, head_count,
+       ml_prediction, ml_confidence, ml_model,
+       arduino, cv_state, ml_state, monitoring)
+```
+
+Every measurement column is **nullable** — a failed DHT read is stored as
+`NULL`, never as `0`.
+
+### Write strategy
+
+The **backend** owns persistence; the frontend only reads. A recorder thread
+samples the state every 2 s and writes a row only when the state *meaningfully*
+changed (temperature ≥ 0.5 °C, humidity ≥ 2 %, light ≥ 5 ADC, or motion /
+head_count / ML prediction changed), with a 60 s heartbeat so quiet periods are
+still represented. Identical repeats never create duplicate rows.
+
+### API
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| GET | `/api/history?limit=100` | recent records, newest first (limit 1–1000) |
+| GET | `/api/history/latest` | single newest record |
+| GET | `/api/history/stats` | row count and database path |
+
+```powershell
+Invoke-RestMethod 'http://localhost:8000/api/history?limit=20'
+```
+
+### Inspecting the database locally
+
+```powershell
+# Row count
+Invoke-RestMethod http://localhost:8000/api/history/stats
+
+# Raw SQL (Python ships sqlite3; no extra tool needed)
+.\backend\.venv\Scripts\python.exe -c "import sqlite3;c=sqlite3.connect(r'backend\data\history.db');print(c.execute('SELECT COUNT(*) FROM history').fetchone())"
+```
 
 ---
 

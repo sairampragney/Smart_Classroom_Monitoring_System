@@ -234,6 +234,24 @@ Deliverables: SQLite storage layer + History page integration.
 
 ---
 
+## Phase 9 — History / Data Persistence ✅
+
+**Objective:** local persistence of monitoring records with a history API and a
+connected History page.
+
+Storage: **SQLite** at `backend/data/history.db`, auto-created, nullable
+measurement columns, UTC ISO-8601 timestamps, change-detection + heartbeat
+write strategy.
+
+Verified: 212 backend tests (26 new history tests); `npm run build` passes;
+live server confirmed all 7 endpoints; end-to-end integration
+(sensor → StateStore → ML → recorder → SQLite → API) passed with **duplicate
+suppression confirmed** (6 identical ticks → 1 row).
+
+> **Hardware verification unchanged:** no physical Arduino connected.
+
+---
+
 ## Phase 10 — System Monitoring
 
 **Objective:** real health states for frontend, backend, WebSocket, Arduino,

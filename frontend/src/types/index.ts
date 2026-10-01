@@ -280,6 +280,33 @@ export interface MLPredictionPayload {
   at: number
 }
 
+/** A single persisted monitoring record (Phase 9). */
+export interface HistoryRecord {
+  id: number
+  /** Timezone-aware ISO-8601 UTC timestamp. */
+  ts: string
+  /** Null when the sensor has not reported (never coerced to 0). */
+  temperature: number | null
+  humidity: number | null
+  light: number | null
+  motion: number | null
+  head_count: number | null
+  ml_prediction: string | null
+  ml_confidence: number | null
+  ml_model: string | null
+  arduino: string | null
+  cv_state: string | null
+  ml_state: string | null
+  monitoring: number | null
+}
+
+export interface HistoryResponse {
+  count: number
+  limit: number
+  total_rows: number
+  records: HistoryRecord[]
+}
+
 export type CvDataState = 'live' | 'stale' | 'none'
 
 /** Lifecycle of the frontend's own WebSocket link. */
