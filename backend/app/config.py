@@ -13,7 +13,7 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # backend/app/config.py -> backend/app -> backend
@@ -46,7 +46,11 @@ class Settings(BaseSettings):
 
     # ---------- Arduino / Serial (consumed from Phase 4) ----------
     # Empty string => automatic port discovery (recommended).
-    serial_port: str = ""
+    # Accepts either SERIAL_PORT or the ARDUINO_PORT name used in the docs.
+    serial_port: str = Field(
+        default="",
+        validation_alias=AliasChoices("SERIAL_PORT", "ARDUINO_PORT"),
+    )
     serial_baud: int = 9600
     serial_read_timeout_s: float = 1.0
     serial_force_port: bool = False

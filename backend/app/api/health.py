@@ -83,6 +83,7 @@ def _build_health() -> HealthResponse:
             cv=state.cv,
             ml=state.ml,
             monitoring_running=state.monitoring_running,
+            monitoring=state.monitoring,
             serial_port=state.serial_port,
         ),
     )

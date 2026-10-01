@@ -30,6 +30,7 @@ progress tracker.
 | 1 | Frontend Foundation | ✅ Complete |
 | 2 | Backend Foundation | ✅ Complete |
 | 3 | Arduino Firmware | ✅ Complete |
+| 4 | Arduino ↔ Backend Connection | ✅ Complete |
 | 3 | Arduino Firmware | ⏳ Pending |
 | 4 | Arduino ↔ Backend Connection | ⏳ Pending |
 | 5 | Frontend ↔ Backend Real-Time Connection | ⏳ Pending |
@@ -251,6 +252,12 @@ Invoke-WebRequest http://localhost:8000/health | Select-Object -ExpandProperty C
 | --- | --- |
 | `GET /health` | Structured health JSON |
 | `GET /api/status` | Alias of `/health` |
+| `GET /api/arduino/status` | Arduino + monitoring state |
+| `GET /api/arduino/sensors` | Latest valid reading (nulls if none) |
+| `GET /api/arduino/ports` | Discovered ports + Arduino-likeness scores |
+| `GET /api/arduino/config` | Effective serial settings |
+| `POST /api/arduino/monitoring/start` | Start monitoring (RUN PROGRAM backend half) |
+| `POST /api/arduino/monitoring/stop` | Stop monitoring |
 | `WS /ws` | Real-time channel |
 | `GET /docs` | Swagger UI |
 
@@ -271,16 +278,99 @@ backend/
 │   ├── logging_config.py   # console + rotating file logging
 │   ├── api/
 │   │   ├── health.py       # /health, /api/status
+│   │   ├── arduino.py      # /api/arduino/*  (Phase 4)
 │   │   └── ws.py           # /ws endpoint
 │   ├── models/
-│   │   ├── common.py       # ConnectionState / CVState / MLState enums
+│   │   ├── common.py       # ConnectionState / CVState / MLState / MonitoringState
 │   │   ├── health.py       # health & status schemas
+│   │   ├── sensors.py      # Phase 3 protocol parser + validation
 │   │   └── ws.py           # WebSocket message protocol
 │   └── services/
 │       ├── state.py        # thread-safe StateStore (single source of truth)
+│       ├── serial_manager.py   # Phase 4 Arduino worker thread
+│       ├── port_discovery.py   # Phase 4 COM-port discovery
 │       └── websocket_manager.py
 └── tests/
 ```
+
+---
+
+## Arduino ↔ Backend Connection (Phase 4)
+
+### Automatic detection (recommended)
+
+Leave the port unset. The backend enumerates serial ports, **excludes
+Bluetooth pseudo-ports** (COM3/COM4/COM9/COM10 on a typical Windows laptop are
+Bluetooth, not Arduino), and ranks candidates by USB VID/PID
+(Arduino `0x2341`, WCH `0x1A86`, Silicon Labs `0x10C4`, FTDI `0x0403`).
+
+```powershell
+Invoke-RestMethod http://localhost:8000/api/arduino/ports | ConvertTo-Json -Depth 5
+```
+
+If more than one candidate is found the backend logs a warning and picks the
+highest score. It never guesses silently.
+
+### Pinning the port manually
+
+Create `backend\.env`:
+
+```dotenv
+# Either name works:
+ARDUINO_PORT=COM5
+SERIAL_PORT=COM5
+```
+
+Verify the port is real hardware:
+
+```powershell
+Get-PnpDevice -Class Ports | Format-Table Status, FriendlyName
+```
+
+### Monitoring lifecycle
+
+| Step | Command | Expected |
+| --- | --- | --- |
+| 1. Start the backend | `uvicorn backend.main:app --reload --port 8000` | `Serial manager ready` |
+| 2. Inspect discovered ports | `GET /api/arduino/ports` | your Arduino, `is_arduino_likely: true` |
+| 3. Start monitoring | `POST /api/arduino/monitoring/start` | `"monitoring":"RUNNING"` |
+| 4. Watch values | `GET /api/arduino/sensors` | real T/H/L/motion |
+| 5. Watch logs | backend console | `Arduino connected on COMx`, `Sensor data received: ...` |
+| 6. Stop monitoring | `POST /api/arduino/monitoring/stop` | `"monitoring":"STOPPED"` |
+
+### What happens with no Arduino
+
+This is a normal, fully-supported state:
+
+- `GET /api/arduino/sensors` returns all `null` with `"has_data": false` —
+  it never invents placeholder values.
+- The worker rescans with exponential backoff (1s → 2s → 4s → 8s → 15s cap).
+- HTTP and WebSocket stay fully responsive the whole time.
+- Unplug/replug the board and the state recovers on its own — no backend
+  restart is needed.
+
+### Verified logs
+
+```text
+[INFO] Scanning serial ports...
+[INFO] Arduino candidate found: COM5 (Arduino Uno (COM5))
+[INFO] Connecting to COM5 at 9600 baud...
+[INFO] Arduino connected on COM5
+[INFO] Sensor data received: T=28.60 H=57.20 L=642 M=True
+[WARNING] Malformed serial packet: missing required field(s): motion
+[WARNING] Arduino disconnected (device disconnected)
+[INFO] Attempting reconnection...
+```
+
+### Serial tests
+
+```powershell
+.\backend\.venv\Scripts\python.exe -m pytest backend\tests\test_serial_parser.py -v
+.\backend\.venv\Scripts\python.exe -m pytest backend\tests\test_serial_manager.py -v
+.\backend\.venv\Scripts\python.exe -m pytest backend\tests\test_port_discovery.py -v
+```
+
+These use a fake serial device. **They do not prove physical hardware works.**
 
 ### WebSocket message protocol
 

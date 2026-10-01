@@ -24,7 +24,8 @@ import time
 from dataclasses import dataclass, field
 from typing import Any
 
-from app.models.common import ConnectionState, CVState, MLState
+from app.models.common import ConnectionState, CVState, MLState, MonitoringState
+from app.models.sensors import SensorReading
 
 
 @dataclass
@@ -38,7 +39,9 @@ class RuntimeState:
     cv: CVState = CVState.STOPPED
     ml: MLState = MLState.NOT_LOADED
     monitoring_running: bool = False
+    monitoring: MonitoringState = MonitoringState.STOPPED
     serial_port: str | None = None
+    sensor_error: str | None = None
 
     # Latest sensor reading (Phase 4 populates this).
     sensor: dict[str, Any] | None = None
@@ -79,7 +82,9 @@ class StateStore:
                 cv=s.cv,
                 ml=s.ml,
                 monitoring_running=s.monitoring_running,
+                monitoring=s.monitoring,
                 serial_port=s.serial_port,
+                sensor_error=s.sensor_error,
                 sensor=dict(s.sensor) if s.sensor else None,
                 sensor_updated_at=s.sensor_updated_at,
                 cv_result=dict(s.cv_result) if s.cv_result else None,
@@ -108,11 +113,34 @@ class StateStore:
             if monitoring_running is not None:
                 self._state.monitoring_running = monitoring_running
 
-    def update_sensor(self, reading: dict[str, Any]) -> None:
-        """Publish a validated sensor reading (Phase 4)."""
+    def update_sensor(self, reading: SensorReading | dict[str, Any]) -> None:
+        """Publish a validated sensor reading (Phase 4).
+
+        Accepts a :class:`SensorReading` or an equivalent dict so later phases
+        (e.g. ML) can inject derived values through the same door.
+        """
+        if isinstance(reading, SensorReading):
+            data = reading.model_dump(mode="json")
+        else:
+            data = dict(reading)
         with self._lock:
-            self._state.sensor = reading
+            self._state.sensor = data
             self._state.sensor_updated_at = time.monotonic()
+            # A valid packet supersedes any previous sensor failure.
+            self._state.sensor_error = data.get("err")
+
+    def update_monitoring(
+        self,
+        *,
+        monitoring: bool | None = None,
+        monitoring_state: MonitoringState | None = None,
+    ) -> None:
+        """Publish the monitoring lifecycle state (Phase 4)."""
+        with self._lock:
+            if monitoring is not None:
+                self._state.monitoring_running = monitoring
+            if monitoring_state is not None:
+                self._state.monitoring = monitoring_state
 
     def update_cv(self, result: dict[str, Any]) -> None:
         """Publish the latest CV result (Phase 6)."""

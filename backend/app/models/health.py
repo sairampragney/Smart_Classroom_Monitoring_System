@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 
 from pydantic import BaseModel, Field
 
-from app.models.common import ConnectionState, CVState, MLState
+from app.models.common import ConnectionState, CVState, MLState, MonitoringState
 
 
 def _utc_now() -> datetime:
@@ -35,6 +35,7 @@ class ServiceStatus(BaseModel):
     cv: CVState = CVState.STOPPED
     ml: MLState = MLState.NOT_LOADED
     monitoring_running: bool = False
+    monitoring: MonitoringState = MonitoringState.STOPPED
     serial_port: str | None = Field(default=None, examples=["COM5"])
 
 

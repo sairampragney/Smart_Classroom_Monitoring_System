@@ -23,9 +23,11 @@ from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 
 from app import __version__  # noqa: E402
 from app.api.health import router as health_router  # noqa: E402
+from app.api.arduino import router as arduino_router  # noqa: E402
 from app.api.ws import router as ws_router  # noqa: E402
 from app.config import get_settings  # noqa: E402
 from app.logging_config import get_logger, setup_logging  # noqa: E402
+from app.services.serial_manager import serial_manager  # noqa: E402
 from app.services.websocket_manager import ws_manager  # noqa: E402
 
 settings = get_settings()
@@ -40,13 +42,24 @@ async def lifespan(app: FastAPI):
     logger.info("%s v%s starting", settings.app_name, __version__)
     logger.info("Mode: %s", "DEMO_MODE" if settings.demo_mode else "REAL_HARDWARE")
     logger.info("CORS origins: %s", ", ".join(settings.cors_origin_list))
+    if settings.serial_port:
+        logger.info(
+            "Arduino port: %s (explicitly configured)", settings.serial_port
+        )
+    else:
+        logger.info("Arduino port: auto-discovery enabled")
     logger.info("=" * 62)
 
-    # Phase 4/6/8 start their background workers here (serial, camera, ML).
+    # Phase 4: the serial worker is started only on demand (the future
+    # "RUN PROGRAM" control), so an absent Arduino is a normal state and the
+    # backend still starts cleanly.
+    logger.info("Serial manager ready (monitoring is OFF until requested)")
 
     yield
 
     logger.info("Shutting down; closing %d WebSocket client(s)", ws_manager.client_count)
+    # Phase 4: stop the serial worker so no thread or COM handle is leaked.
+    serial_manager.stop()
 
 
 app = FastAPI(
@@ -72,6 +85,7 @@ app.add_middleware(
 )
 
 app.include_router(health_router)
+app.include_router(arduino_router)
 app.include_router(ws_router)
 
 

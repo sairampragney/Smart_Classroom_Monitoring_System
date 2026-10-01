@@ -17,6 +17,22 @@ class ConnectionState(str, Enum):
     CONNECTING = "CONNECTING"
     CONNECTED = "CONNECTED"
     ERROR = "ERROR"
+    # Added in Phase 4: the port was lost and a retry is in progress.
+    RECONNECTING = "RECONNECTING"
+
+
+class MonitoringState(str, Enum):
+    """Whether the backend is actively consuming the sensor stream.
+
+    Distinct from :class:`ConnectionState`: a board can be physically CONNECTED
+    while monitoring is deliberately STOPPED (this is what the future
+    "RUN PROGRAM" control toggles).
+    """
+
+    STOPPED = "STOPPED"
+    STARTING = "STARTING"
+    RUNNING = "RUNNING"
+    STOPPING = "STOPPING"
 
 
 class CVState(str, Enum):

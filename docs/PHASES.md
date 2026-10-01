@@ -94,6 +94,24 @@ Deliverables: `backend/app/services/serial_manager.py` + tests.
 
 ---
 
+## Phase 4 — Arduino ↔ Backend Connection ✅
+
+**Objective:** pyserial port discovery, JSON line parsing with validation,
+connection state, disconnect detection and automatic reconnection, integrated
+into the Phase 2 backend.
+
+Deliverables: `serial_manager.py`, `port_discovery.py`, `models/sensors.py`,
+`api/arduino.py`, monitoring lifecycle endpoints.
+
+Verified: 128 automated tests (parser, manager lifecycle, discovery) pass;
+live backend serves all endpoints; monitoring lifecycle exercised against a real
+server with no Arduino present; frontend build unchanged and green.
+
+> **Hardware testing NOT performed** — no Arduino was connected. Live serial
+> behaviour is verified against a fake device only.
+
+---
+
 ## Phase 5 — Frontend ↔ Backend Real-Time Connection
 
 **Objective:** end-to-end WebSocket link, sensor cards, connection indicators,
