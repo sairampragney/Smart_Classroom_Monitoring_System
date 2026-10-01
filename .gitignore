@@ -1,0 +1,96 @@
+# ==========================================================
+# Smart Classroom Monitoring System - Git Ignore Rules
+# ==========================================================
+
+# ---- Secrets & local environment (NEVER COMMIT) ----
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+secrets/
+credentials.json
+service-account*.json
+.gh_token
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+venv/
+env/
+ENV/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# ---- Node / Frontend ----
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.vite/
+.cache/
+.eslintcache
+*.tsbuildinfo
+
+# ---- Machine Learning artifacts (regenerated, large) ----
+# Model binaries are reproducible from ml/scripts via tracked training code.
+backend/artifacts/*
+!backend/artifacts/.gitkeep
+ml/artifacts/*
+!ml/artifacts/.gitkeep
+# Trained model files are intentionally NOT committed (regenerate with scripts/train.py)
+
+# ---- Computer Vision models ----
+# Haar/LBP cascades are large binaries; download via scripts/fetch_cv_models.ps1
+cv/models/*
+!cv/models/.gitkeep
+
+# ---- Datasets (large; use scripts/fetch_datasets.ps1) ----
+ml/datasets/*
+!ml/datasets/.gitkeep
+*.csv.gz
+*.zip
+
+# ---- Runtime data / database ----
+backend/data/*
+!backend/data/.gitkeep
+*.db
+*.sqlite
+*.sqlite3
+*.log
+
+# ---- Captured frames / debug output (never commit) ----
+*.jpg
+*.jpeg
+*.png
+*.bmp
+*.mp4
+*.avi
+captures/
+debug_frames/
+
+# ---- Editor / OS ----
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---- OS ----
+ehthumbs.db
+Desktop.ini
