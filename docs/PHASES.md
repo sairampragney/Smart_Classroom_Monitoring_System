@@ -31,7 +31,7 @@ README skeleton, and phase plan.
 
 ---
 
-## Phase 1 — Frontend Foundation ⛔ NOT STARTED
+## Phase 1 — Frontend Foundation ✅
 
 **Objective:** React + Vite + TypeScript app with routing, navigation, the
 **Dark Violet AI + IoT Command Center** design system, responsive layout, and
@@ -40,9 +40,9 @@ page skeletons for all six pages.
 Deliverables: `Dashboard`, `Live Monitoring`, `Computer Vision`, `ML Analysis`,
 `History`, `System`.
 
-> **Reality check (recorded after Phase 2):** no Phase 1 code, commit or branch
-> exists. `frontend/` holds only empty directories created during Phase 0
-> scaffolding. This phase still needs to be implemented.
+Verified: `npm run build` succeeds (55 modules, code-split per page); Vite dev
+server serves all six routes; all modules transform without error; backend
+regression (24/24 tests, 4 endpoints, WebSocket, CORS) still green.
 
 ---
 

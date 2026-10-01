@@ -1,0 +1,150 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================================
+   Dark Violet AI + IoT Command Center - design tokens
+   ========================================================== */
+@layer base {
+  :root {
+    --bg-deep: #070611;
+    --bg-secondary: #0d0b1a;
+    --bg-card: #121022;
+    --violet: #8b5cf6;
+    --violet-electric: #a855f7;
+    --indigo: #6366f1;
+    --violet-soft: #c084fc;
+    --fg: #f8fafc;
+    --fg-muted: #94a3b8;
+  }
+
+  * {
+    border-color: rgba(139, 92, 246, 0.12);
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-bg-deep text-fg antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+  }
+
+  /* Visible, on-brand focus ring for keyboard users. */
+  :focus-visible {
+    outline: 2px solid var(--violet-electric);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Slim violet scrollbars */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--bg-deep);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(139, 92, 246, 0.28);
+    border-radius: 999px;
+    border: 2px solid var(--bg-deep);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(139, 92, 246, 0.45);
+  }
+}
+
+@layer components {
+  /* ---- Glass card: the core surface of the console ---- */
+  .glass-card {
+    @apply relative rounded-2xl border border-violet-500/10 bg-bg-card/70 shadow-card backdrop-blur-xl;
+  }
+
+  /* Subtle top highlight - sells the "glass" without heavy effects. */
+  .glass-card::before {
+    content: '';
+    @apply pointer-events-none absolute inset-x-0 top-0 h-px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(168, 85, 247, 0.45),
+      transparent
+    );
+  }
+
+  .glass-card-hover {
+    @apply transition-all duration-300;
+  }
+  .glass-card-hover:hover {
+    @apply border-violet-500/30 shadow-glow;
+    transform: translateY(-2px);
+  }
+
+  /* ---- Section label ---- */
+  .section-label {
+    @apply text-[11px] font-semibold uppercase tracking-[0.14em] text-fg-muted;
+  }
+
+  /* ---- Page title ---- */
+  .page-title {
+    @apply text-2xl font-bold tracking-tight text-fg sm:text-3xl;
+  }
+
+  /* ---- Monospace numeric readouts ---- */
+  .metric-value {
+    @apply font-mono tabular-nums tracking-tight text-fg;
+  }
+
+  /* ---- Ambient background layers ---- */
+  .bg-console {
+    background-image:
+      radial-gradient(ellipse 70% 50% at 50% -8%, rgba(99, 102, 241, 0.16), transparent 65%),
+      radial-gradient(ellipse 55% 45% at 88% 8%, rgba(168, 85, 247, 0.12), transparent 70%);
+  }
+
+  .bg-grid-overlay {
+    background-image:
+      linear-gradient(rgba(139, 92, 246, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(139, 92, 246, 0.05) 1px, transparent 1px);
+    background-size: 44px 44px;
+    -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 0%, #000 30%, transparent 85%);
+    mask-image: radial-gradient(ellipse 90% 70% at 50% 0%, #000 30%, transparent 85%);
+  }
+
+  /* Very light noise so large dark areas are not perfectly flat. */
+  .bg-noise::after {
+    content: '';
+    @apply pointer-events-none absolute inset-0 opacity-[0.025];
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+}
+
+@layer utilities {
+  .text-gradient-violet {
+    @apply bg-gradient-to-r from-violet-soft via-violet to-indigo bg-clip-text text-transparent;
+  }
+}
+
+/* ==========================================================
+   Reduced motion - honour the OS accessibility setting
+   ========================================================== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .glass-card-hover:hover {
+    transform: none;
+  }
+}

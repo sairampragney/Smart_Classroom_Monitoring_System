@@ -27,7 +27,7 @@ progress tracker.
 | Phase | Name | Status |
 | --- | --- | --- |
 | 0 | Project Initialization | ✅ Complete |
-| 1 | Frontend Foundation | ⛔ **Not started** (see note) |
+| 1 | Frontend Foundation | ✅ Complete |
 | 2 | Backend Foundation | ✅ Complete |
 | 3 | Arduino Firmware | ⏳ Pending |
 | 4 | Arduino ↔ Backend Connection | ⏳ Pending |
@@ -43,11 +43,10 @@ progress tracker.
 
 See [`docs/PHASES.md`](docs/PHASES.md) for the full phase plan.
 
-> **Note on Phase 1:** Phase 1 was reported as complete, but no Phase 1 code,
-> commit, or branch exists in this repository — `frontend/` still contains only
-> empty scaffolding directories. Phase 2 therefore proceeded against an absent
-> frontend, and no frontend build could be verified. Phase 1 still needs to be
-> implemented.
+> **Phases 1 & 2 are both complete.** Phase 1 was previously reported as done
+> but never actually implemented. It has now been built from scratch after the
+> Phase 2 backend, as required. The dev server, all six routes, and the
+> production build have all been verified.
 
 ---
 
@@ -238,6 +237,86 @@ Every server → client message uses one envelope:
 Message types in Phase 2: `hello`, `system_status`, `pong`, `error`.
 Reserved for later phases: `sensor_reading`, `arduino_status`, `program_status`,
 `cv_frame`, `face_detection`, `ml_prediction`.
+
+---
+
+## Frontend Setup (Phase 1+)
+
+The frontend lives in `frontend/` and runs on **http://localhost:5173**.
+
+```powershell
+# One-time setup
+cd frontend
+npm install
+
+# Start the dev server
+npm run dev
+```
+
+### Production build
+
+```powershell
+cd frontend
+npm run build      # type-checks (tsc -b) then bundles to dist/
+npm run preview    # serve the production build locally
+```
+
+### Frontend configuration
+
+Backend URLs are **never hardcoded**. Copy the template and edit if needed:
+
+```powershell
+Copy-Item frontend\.env.example frontend\.env.local
+```
+
+```dotenv
+VITE_API_BASE_URL=http://localhost:8000
+VITE_WS_BASE_URL=ws://localhost:8000
+```
+
+Only `VITE_*` variables reach the browser bundle. Never put a secret here.
+
+### Frontend structure
+
+```text
+frontend/src/
+├── main.tsx                  # React root
+├── App.tsx                   # routes (lazy-loaded pages)
+├── config/env.ts             # centralized API/WS URLs
+├── context/                  # single shared WebSocket + health state
+├── hooks/useWebSocket.ts     # connect / reconnect / dispatch
+├── services/api.ts           # REST client
+├── types/                    # mirrors the backend contract
+├── layouts/AppLayout.tsx     # shell + ambient background
+├── components/
+│   ├── layout/               # Sidebar, TopBar
+│   ├── ui/                   # Card, StatCard, StatusPill, EmptyState…
+│   └── cv/CameraViewport.tsx # face-box overlay + coordinate mapping
+└── pages/                    # the six views + 404
+```
+
+### Design system
+
+**Dark Violet AI + IoT Command Center** — defined in `tailwind.config.js` and
+`src/index.css`.
+
+| Token | Value |
+| --- | --- |
+| Deep background | `#070611` |
+| Secondary | `#0D0B1A` |
+| Card | `#121022` |
+| Violet | `#8B5CF6` |
+| Electric violet | `#A855F7` |
+| Indigo | `#6366F1` |
+| Soft purple | `#C084FC` |
+| White | `#F8FAFC` |
+| Muted | `#94A3B8` |
+
+Green (`#22C55E`) is reserved **exclusively** for semantic status — `CONNECTED`,
+`RUNNING`, `FACE DETECTED`. It is never used as a general theme colour.
+
+Accessibility: `prefers-reduced-motion` is honoured, keyboard focus rings are
+visible, and the layout is responsive from mobile to wide desktop.
 
 ---
 
