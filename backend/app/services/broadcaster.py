@@ -70,6 +70,7 @@ class StateBroadcaster:
         self._task: asyncio.Task | None = None
         self._last_sensor_stamp: float | None = None
         self._last_status_key: tuple | None = None
+        self._last_cv_key: tuple | None = None
 
     @property
     def is_running(self) -> bool:
@@ -79,6 +80,7 @@ class StateBroadcaster:
         """Forget what was last sent (used on startup and by tests)."""
         self._last_sensor_stamp = None
         self._last_status_key = None
+        self._last_cv_key = None
 
     async def _run(self) -> None:
         logger.info("State broadcaster started (poll %.0f ms)", POLL_INTERVAL_S * 1000)
@@ -129,6 +131,18 @@ class StateBroadcaster:
                     payload=_status_payload(snapshot),
                 )
             )
+
+        # --- face_detection (Phase 6) ---
+        # Keyed on the frame count + processed timestamp so every new frame
+        # produces exactly one message, and an unchanged frame produces none.
+        if snapshot.cv_result is not None:
+            cv = snapshot.cv_result
+            cv_key = (cv.get("processed_at"), cv.get("face_count"))
+            if cv_key != self._last_cv_key:
+                self._last_cv_key = cv_key
+                await ws_manager.broadcast(
+                    WSMessage(type=WSMessageType.FACE_DETECTION, payload=cv)
+                )
 
     def start(self) -> None:
         if self.is_running:

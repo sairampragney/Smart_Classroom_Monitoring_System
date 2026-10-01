@@ -147,6 +147,27 @@ Deliverables: `backend/app/services/cv_service.py` + tests.
 
 ---
 
+## Phase 6 — Computer Vision Engine ✅
+
+**Objective:** real camera capture, face detection, bounding boxes, head count
+and measured FPS, integrated into the existing FastAPI backend.
+
+Deliverables: `models/cv.py`, `services/camera.py`, `services/face_detector.py`,
+`services/cv_service.py`, `api/cv.py`, `face_detection` WS message,
+`scripts/fetch_cv_models.ps1`, `docs/COMPUTER_VISION.md`.
+
+Detector: **YuNet** (Haar cascades are unavailable — `cv2.CascadeClassifier`
+was removed in OpenCV 5.0).
+
+Verified: 161 automated tests pass; production build unaffected; **real
+`Integrated Webcam` used** — 582 frames, measured 30.88 FPS, 102 `face_detection`
+messages, camera released on stop.
+
+> **Real face detection on live camera NOT verified** — nobody was in front of
+> the camera, so head-count changes were only tested with synthetic frames.
+
+---
+
 ## Phase 7 — Computer Vision Frontend
 
 **Objective:** live camera view with green `FACE DETECTED` boxes, accurate

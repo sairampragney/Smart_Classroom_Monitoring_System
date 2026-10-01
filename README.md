@@ -32,6 +32,7 @@ progress tracker.
 | 3 | Arduino Firmware | ✅ Complete |
 | 4 | Arduino ↔ Backend Connection | ✅ Complete |
 | 5 | Frontend ↔ Backend Real-Time | ✅ Complete |
+| 6 | Computer Vision Engine | ✅ Complete |
 | 3 | Arduino Firmware | ⏳ Pending |
 | 4 | Arduino ↔ Backend Connection | ⏳ Pending |
 | 5 | Frontend ↔ Backend Real-Time Connection | ⏳ Pending |
@@ -194,6 +195,66 @@ Full wiring diagram, protocol rules and troubleshooting:
 
 > Close the Arduino IDE **Serial Monitor** before running the backend — it holds
 > the COM port exclusively and blocks `pyserial`.
+
+---
+
+## Computer Vision Engine (Phase 6)
+
+Real face detection and head count from the local camera.
+Full documentation: [`docs/COMPUTER_VISION.md`](docs/COMPUTER_VISION.md).
+
+### Setup
+
+```powershell
+# 1. Download the detector model (227 KB, not committed)
+.\scripts\fetch_cv_models.ps1
+
+# 2. Install CV dependencies
+.\backend\.venv\Scripts\python.exe -m pip install -r backend\requirements.txt
+```
+
+### Run
+
+```powershell
+Invoke-RestMethod -Method POST http://localhost:8000/api/cv/start
+Invoke-RestMethod http://localhost:8000/api/cv/status
+Invoke-RestMethod -Method POST http://localhost:8000/api/cv/stop   # releases camera
+```
+
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /api/cv/status` | pipeline state, FPS, counters, error |
+| `GET /api/cv/detections` | latest face boxes (no image) |
+| `GET /api/cv/frame` | latest boxes + base64 JPEG snapshot |
+| `POST /api/cv/start` | begin detection |
+| `POST /api/cv/stop` | stop and release the camera |
+
+### Detector
+
+**YuNet** (`cv2.FaceDetectorYN`, 227 KB ONNX). Haar cascades were rejected
+because `cv2.CascadeClassifier` was **removed in OpenCV 5.0**; MediaPipe and
+DNN detectors were rejected as unnecessarily heavy. YuNet returns a **real**
+confidence score and supports multiple faces per frame.
+
+### Configuration
+
+`CAMERA_INDEX`, `CV_FRAME_WIDTH`, `CV_FRAME_HEIGHT`, `CV_MIN_CONFIDENCE`,
+`CV_PROCESS_SCALE`, `CV_MODEL_PATH`, `CV_JPEG_QUALITY`.
+
+### Coordinate contract
+
+Boxes are in **source-frame pixels**, origin top-left, `+x` right, `+y` down.
+`frame_width` / `frame_height` accompany every result so Phase 7 can map boxes
+onto the displayed video correctly.
+
+### Measured on this machine
+
+640×480, Dell Latitude 5490 (i5-8350U, CPU only): **30.88 FPS measured**,
+582 frames processed. Head count correctly `0` with nobody in frame.
+
+> **Real face detection on live camera is not yet verified** — no person was in
+> front of the camera during the test. Capture, detection loop, FPS, WebSocket
+> streaming and camera release **were** verified on the real camera.
 
 ---
 

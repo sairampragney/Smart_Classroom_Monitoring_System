@@ -24,10 +24,12 @@ from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from app import __version__  # noqa: E402
 from app.api.health import router as health_router  # noqa: E402
 from app.api.arduino import router as arduino_router  # noqa: E402
+from app.api.cv import router as cv_router  # noqa: E402
 from app.api.ws import router as ws_router  # noqa: E402
 from app.config import get_settings  # noqa: E402
 from app.logging_config import get_logger, setup_logging  # noqa: E402
 from app.services.broadcaster import broadcaster
+from app.services.cv_service import cv_service  # noqa: E402
 from app.services.serial_manager import serial_manager  # noqa: E402
 from app.services.websocket_manager import ws_manager  # noqa: E402
 
@@ -59,9 +61,20 @@ async def lifespan(app: FastAPI):
     # Phase 5: push state changes (sensor_reading / arduino_status) to clients.
     broadcaster.start()
 
+    # Phase 6: the camera is NOT auto-started. Detection begins only when
+    # POST /api/cv/start is called, so an absent camera is a normal state and
+    # the webcam is never held open unexpectedly.
+    logger.info(
+        "CV engine ready (detector=%s, camera=%s, not started)",
+        cv_service.detector_name,
+        settings.camera_index,
+    )
+
     yield
 
     logger.info("Shutting down; closing %d WebSocket client(s)", ws_manager.client_count)
+    # Phase 6: release the camera before the process exits.
+    cv_service.stop()
     # Phase 5: stop the broadcaster so no task is left running.
     await broadcaster.stop()
     # Phase 4: stop the serial worker so no thread or COM handle is leaked.
@@ -92,6 +105,7 @@ app.add_middleware(
 
 app.include_router(health_router)
 app.include_router(arduino_router)
+app.include_router(cv_router)
 app.include_router(ws_router)
 
 

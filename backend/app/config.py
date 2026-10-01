@@ -59,8 +59,15 @@ class Settings(BaseSettings):
     camera_index: int = 0
     cv_frame_width: int = 640
     cv_frame_height: int = 480
-    cv_min_confidence: float = 0.5
+    cv_min_confidence: float = 0.6
     cv_track_timeout_s: float = 1.5
+    # Processing downscale for CPU. 1.0 = process at the source resolution.
+    # Boxes are always reported in SOURCE coordinates regardless of this.
+    cv_process_scale: float = Field(default=1.0, gt=0.0, le=1.0)
+    # YuNet ONNX model (relative to the project root).
+    cv_model_path: str = "cv/models/face_detection_yunet_2023mar.onnx"
+    # JPEG quality for the snapshot endpoint used by Phase 7.
+    cv_jpeg_quality: int = Field(default=70, ge=1, le=100)
 
     # ---------- Machine Learning (consumed from Phase 8) ----------
     ml_model_path: str = "ml/artifacts/occupancy_model.joblib"
