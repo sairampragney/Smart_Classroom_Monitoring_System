@@ -318,10 +318,38 @@ Full matrix: [`INTEGRATION.md`](INTEGRATION.md).
 
 ---
 
-## Phase 12 — Local Demo Automation
+## Phase 12 — Local Demo Automation ✅
 
 **Objective:** a reliable `.\start.ps1` for the college demo, with visible
 errors and documented manual fallbacks.
+
+The Phase 11 script was **improved in place, not rewritten**. Its working
+readiness gate, IPv4→IPv6 probing and logging were kept; the gaps were filled.
+
+Added / improved:
+- **Verification-only preflight** — project root, PowerShell version, Python in
+  the venv, required Python packages (checked with `importlib.util.find_spec`, so
+  nothing is imported or downloaded), Node, npm, `node_modules` *and* the actual
+  `vite.cmd` binary, plus regenerable model/dataset artifacts
+- **`MISSING DEPENDENCY` reporting** with the exact manual fix. Nothing is ever
+  auto-installed
+- **Port conflicts** now name the owning process and PID and offer three
+  options. No arbitrary process is ever killed
+- **Process tracking and `-Stop`** — PIDs are written to `.start-state.json` and
+  the whole child tree (uvicorn → python, npm → node → vite → esbuild) is
+  stopped, so no orphans survive. Unrelated processes are never touched
+- **Ctrl+C handling** for interactive use
+- **Rollback on failure** — if the frontend fails, this run's backend is stopped
+  too, so a half-started system is never left behind
+- **Demo-ready output** reporting the real Arduino / Camera / CV / ML / Database
+  states read back from the running backend
+
+Verified: normal startup, port conflict, induced backend failure, camera-unavailable
+path, `-Stop` cleanup, unrelated-process protection, and 226 backend tests +
+166 frontend checks + `npm run build`.
+
+> **Hardware unchanged.** No Arduino was connected during this phase, and the
+> script never touches hardware — no firmware upload, no auto-started CV.
 
 ---
 

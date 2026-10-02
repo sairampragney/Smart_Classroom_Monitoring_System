@@ -72,9 +72,10 @@ backend/data/*
 *.sqlite3
 *.log
 
-# ---- start.ps1 runtime logs ----
-backend-start.log
-frontend-start.log
+# ---- start.ps1 runtime logs / state ----
+backend-start.log*
+frontend-start.log*
+.start-state.json
 
 # ---- Captured frames / debug output (never commit) ----
 *.jpg

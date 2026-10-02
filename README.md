@@ -38,7 +38,7 @@ progress tracker.
 | 9 | History / Data Persistence | ✅ Complete |
 | 10 | System Monitoring | ✅ Complete |
 | 11 | Integration | ✅ Complete (software paths verified) |
-| 12 | Local Demo Automation | ⏳ Pending |
+| 12 | Local Demo Automation | ✅ Complete |
 | 13 | Final Testing & Quality | ⏳ Pending |
 
 See [`docs/PHASES.md`](docs/PHASES.md) for the full phase plan.
@@ -58,30 +58,54 @@ See [`docs/PHASES.md`](docs/PHASES.md) for the full phase plan.
 
 ---
 
-## Quick start
+## College demo workflow
 
-The whole system starts with one command:
+Run this from a PowerShell window in the repository root:
 
 ```powershell
-# from the repository root
+cd D:\Smart_Classroom_Monitoring_System
 .\start.ps1
 ```
 
-`start.ps1` checks prerequisites, starts the backend and the frontend, waits
-until both actually respond, prints the real component states, and opens the
-browser. It does not install anything and does not hide failures.
+The script verifies the environment, starts both services, waits until they
+actually respond, and prints the real hardware states. Then, in the browser:
+
+1. **Open the frontend** — <http://localhost:5173> (opened automatically)
+2. **Connect the Arduino** — plug in the USB cable. Confirm the **Live
+   Monitoring** page changes from `DISCONNECTED` to `CONNECTED`.
+3. **Verify Arduino status** — System page shows the detected port.
+4. **Click RUN PROGRAM** — starts live sensor monitoring.
+5. **Watch Live Monitoring** — temperature, humidity, light and motion.
+6. **Open Computer Vision → Start** — this is the only place CV is started.
+7. **Sit in frame** — confirm the head count and the box align with your face.
+8. **Inspect ML Analysis** — occupancy prediction from the sensors.
+9. **Inspect History** — recorded rows and charts.
+10. **Inspect System** — full component health.
+
+When finished:
 
 ```powershell
-.\start.ps1 -NoBrowser      # do not open a browser
-.\start.ps1 -BackendOnly    # backend only (e.g. when the dev server is already up)
-.\start.ps1 -FrontendOnly   # frontend only
+.\start.ps1 -Stop
+```
+
+### Script options
+
+```powershell
+.\start.ps1                   # full system, opens the browser
+.\start.ps1 -NoBrowser        # do not open a browser
+.\start.ps1 -Stop             # stop only what a previous run started
+.\start.ps1 -BackendOnly      # backend only
+.\start.ps1 -FrontendOnly     # frontend only
 .\start.ps1 -BackendPort 8010 -FrontendPort 5180
 ```
 
-If the port is already in use, the script stops and says so instead of starting
-a half-working system.
+The script never installs anything. If a dependency is missing it prints
+`MISSING DEPENDENCY` with the exact command to run. It never kills a process it
+did not start — a busy port is reported with the owning PID instead.
 
-### Manual start (equivalent to `start.ps1`)
+### Manual start (fallback)
+
+If the script cannot run, use two terminals:
 
 ```powershell
 # terminal 1 - backend
@@ -90,6 +114,8 @@ backend\.venv\Scripts\python.exe -m uvicorn backend.main:app --port 8000
 # terminal 2 - frontend
 cd frontend; npm run dev
 ```
+
+Stop each with `Ctrl+C` in its own window.
 
 ---
 
@@ -476,9 +502,14 @@ Invoke-RestMethod http://localhost:8000/health | ConvertTo-Json -Depth 5
 ## Quick Start
 
 ```powershell
-# One-command startup (creates venv + installs deps if needed)
+# One-command startup: verifies the environment, starts both services,
+# waits for real readiness, prints live hardware states, opens the browser
 .\start.ps1
 ```
+
+It does **not** install anything. A missing dependency is reported as
+`MISSING DEPENDENCY` with the exact command to run. See
+[College demo workflow](#college-demo-workflow) for the full demo steps.
 
 ### Manual setup
 
@@ -820,13 +851,95 @@ Real `.env` files are git-ignored and must never be committed.
 
 ## Troubleshooting
 
-| Problem | Fix |
-| --- | --- |
-| Arduino shows `DISCONNECTED` | Check USB cable (must be a **data** cable), then confirm the port in `backend\.env` or leave `SERIAL_PORT` empty for auto-detection. |
-| Wrong port selected | Bluetooth pseudo-ports (e.g. `COM3`) may be picked up. Set `SERIAL_PORT` explicitly, or unplug unused Bluetooth devices. |
-| Camera will not start | Close any other app using the camera (Teams/Zoom/Meet). Try a different `CAMERA_INDEX`. |
-| Backend will not start | Activate the venv and `pip install -r backend\requirements.txt`. |
-| Frontend cannot reach backend | Confirm `VITE_API_BASE_URL` and the backend CORS origins. |
+### Port 8000 busy (backend)
+
+The script reports the owning process and then stops — it never kills anything
+it did not start. To investigate:
+
+```powershell
+Get-NetTCPConnection -LocalPort 8000 -State Listen
+Get-Process -Id <PID-from-above>          # inspect before stopping
+.\start.ps1 -Stop                          # if a previous run started it
+.\start.ps1 -BackendPort 8010              # or use a different port
+```
+
+### Port 5173 busy (frontend)
+
+Same commands with `5173`. A leftover Vite dev server is the usual cause;
+`.\start.ps1 -Stop` clears it. Otherwise use `.\start.ps1 -FrontendPort 5180`.
+
+### Python missing
+
+`start.ps1` reports `MISSING DEPENDENCY` and the exact fix. Python **3.10+** is
+required (verified on 3.14). The project uses its own virtualenv, so no global
+Python packages are needed:
+
+```powershell
+py -3.11 -m venv backend\.venv
+backend\.venv\Scripts\python.exe -m pip install -r backend\requirements.txt
+```
+
+### npm missing
+
+npm ships with Node.js. Install **Node.js LTS** from <https://nodejs.org>, then
+open a *new* terminal so `PATH` refreshes, and check:
+
+```powershell
+node --version
+npm --version
+```
+
+Then `cd frontend; npm install`.
+
+### Backend fails to start
+
+The script prints the last 20 log lines and the file to inspect. In full:
+
+```powershell
+Get-Content backend-start.log -Tail 50
+Get-Content backend-start.log.err -Tail 50
+```
+
+Both are rewritten on every run.
+
+### Frontend fails to start
+
+```powershell
+Get-Content frontend-start.log -Tail 50
+Get-Content frontend-start.log.err -Tail 50
+```
+
+A missing `node_modules\.bin\vite.cmd` means dependencies are incomplete —
+run `cd frontend; npm install`.
+
+### Arduino shows DISCONNECTED
+
+**This is a valid runtime state, not an error.** The app starts and runs fine
+without a board; the System page simply reports `DISCONNECTED`. To connect:
+
+1. Use a **data** USB cable (charge-only cables are the most common cause).
+2. Close the **Arduino IDE Serial Monitor** — it holds the COM port
+   exclusively and blocks pyserial.
+3. Check the detected ports: `Get-Content backend-start.log | Select-String port`
+4. Press **RUN PROGRAM** in the UI once the status changes to `CONNECTED`.
+
+Bluetooth pseudo-ports are excluded. If auto-detection picks the wrong port,
+set `SERIAL_PORT` in `backend\.env`.
+
+### Camera unavailable
+
+The application still starts; CV simply reports `STOPPED` and the CV page shows
+an error. To fix:
+
+1. Close any other app holding the camera (Teams, Zoom, Meet, browser tabs).
+2. In **Settings → Privacy → Camera**, allow desktop apps to access the camera.
+3. Confirm the device is present: `Get-PnpDevice -Class Camera`
+4. Try another index in `backend\.env`: `CAMERA_INDEX=1`
+
+### Unexpected behaviour
+
+The **System** page shows the real state of every component and is the fastest
+way to see what the backend actually believes.
 
 ---
 
