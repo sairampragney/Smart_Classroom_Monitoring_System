@@ -37,15 +37,7 @@ progress tracker.
 | 8 | Machine Learning | ✅ Complete |
 | 9 | History / Data Persistence | ✅ Complete |
 | 10 | System Monitoring | ✅ Complete |
-| 3 | Arduino Firmware | ⏳ Pending |
-| 4 | Arduino ↔ Backend Connection | ⏳ Pending |
-| 5 | Frontend ↔ Backend Real-Time Connection | ⏳ Pending |
-| 6 | Computer Vision Engine | ⏳ Pending |
-| 7 | Computer Vision Frontend | ⏳ Pending |
-| 8 | Machine Learning | ⏳ Pending |
-| 9 | History / Data | ⏳ Pending |
-| 10 | System Monitoring | ⏳ Pending |
-| 11 | Integration | ⏳ Pending |
+| 11 | Integration | ✅ Complete (software paths verified) |
 | 12 | Local Demo Automation | ⏳ Pending |
 | 13 | Final Testing & Quality | ⏳ Pending |
 
@@ -55,6 +47,49 @@ See [`docs/PHASES.md`](docs/PHASES.md) for the full phase plan.
 > but never actually implemented. It has now been built from scratch after the
 > Phase 2 backend, as required. The dev server, all six routes, and the
 > production build have all been verified.
+
+> **Hardware caveat for Phase 11.** No Arduino board is currently connected to
+> this machine, so every Arduino-side path was verified as *honestly absent*
+> (`DISCONNECTED`, `has_data: false`, zero serial ports) rather than by reading
+> live sensor data. The camera path **was** verified live at 640x480. Face
+> detection with a real person in frame, multi-face counting, and on-screen box
+> alignment remain unverified and need a human participant. See
+> [`docs/INTEGRATION.md`](docs/INTEGRATION.md) for the full matrix.
+
+---
+
+## Quick start
+
+The whole system starts with one command:
+
+```powershell
+# from the repository root
+.\start.ps1
+```
+
+`start.ps1` checks prerequisites, starts the backend and the frontend, waits
+until both actually respond, prints the real component states, and opens the
+browser. It does not install anything and does not hide failures.
+
+```powershell
+.\start.ps1 -NoBrowser      # do not open a browser
+.\start.ps1 -BackendOnly    # backend only (e.g. when the dev server is already up)
+.\start.ps1 -FrontendOnly   # frontend only
+.\start.ps1 -BackendPort 8010 -FrontendPort 5180
+```
+
+If the port is already in use, the script stops and says so instead of starting
+a half-working system.
+
+### Manual start (equivalent to `start.ps1`)
+
+```powershell
+# terminal 1 - backend
+backend\.venv\Scripts\python.exe -m uvicorn backend.main:app --port 8000
+
+# terminal 2 - frontend
+cd frontend; npm run dev
+```
 
 ---
 

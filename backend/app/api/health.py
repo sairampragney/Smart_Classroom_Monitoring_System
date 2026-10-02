@@ -127,7 +127,7 @@ def _build_health() -> HealthResponse:
         status="ok",
         app=SETTINGS.app_name,
         version=__version__,
-        phase="10",
+        phase="11",
         mode="DEMO_MODE" if SETTINGS.demo_mode else "REAL_HARDWARE",
         demo_mode=SETTINGS.demo_mode,
         uptime_s=state.uptime_s(),

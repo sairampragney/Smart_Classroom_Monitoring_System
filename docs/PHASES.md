@@ -280,10 +280,41 @@ Full documentation: [`SYSTEM_MONITORING.md`](SYSTEM_MONITORING.md).
 
 ---
 
-## Phase 11 — Integration
+## Phase 11 — Integration ✅ (software paths verified)
 
 **Objective:** run and verify the complete architecture
 (Arduino → serial → FastAPI → WebSocket → React, and Camera → OpenCV → WebSocket → React).
+
+Changes:
+- added `start.ps1` — one-command startup for the whole system with a real
+  readiness gate (it polls until both services actually answer), prerequisite
+  checks, port-conflict detection, and honest component-state reporting
+- `start.ps1` probes loopback explicitly rather than by hostname, because on
+  this machine Vite binds `::1` while uvicorn binds `127.0.0.1`; probing
+  `localhost` stalled the readiness gate and reported a healthy backend as failed
+- phase marker advanced from `"10"` to `"11"` in `/health` and its two tests
+
+Verified live against the running system:
+- `.\start.ps1` brings up backend + frontend and reports real states
+- backend: 20 OpenAPI paths, `/health` ok, `/docs` 200
+- Arduino: `DISCONNECTED`, `ports: []`, `has_data: false` (honest, no board)
+- WebSocket: `hello` / `system_status` / `arduino_status` / `face_detection`
+- camera: opened at 640x480, detector `YuNet` ready, ~17–30 FPS measured
+- CV lifecycle: start → stream → stop → restart, camera released on stop
+- MJPEG: `multipart/x-mixed-replace; boundary=frame`, valid JPEG SOI
+- ML: real DecisionTree artifact, 10,129-row UCI dataset, both prediction classes
+- history: records written by the live CV run, dashboard/DB row counts agree
+
+> **Hardware verification is partial, by necessity.** No Arduino board is
+> connected (zero serial ports), so all Arduino-side paths were verified as
+> correctly-absent rather than with live sensor data. The camera *was* verified
+> live. Face detection with a person in frame, multi-face counting, and on-screen
+> box alignment still need a human participant and remain **NOT TESTED**.
+
+Regression: 226 backend/Arduino tests · 39 + 37 + 90 frontend checks ·
+`npm run build` passes.
+
+Full matrix: [`INTEGRATION.md`](INTEGRATION.md).
 
 ---
 

@@ -253,7 +253,7 @@ def test_status_alias_matches_health(health_client, monkeypatch):
 
 def test_phase_is_reported(health_client, monkeypatch):
     _patch(monkeypatch)
-    assert health_client.get("/health").json()["phase"] == "10"
+    assert health_client.get("/health").json()["phase"] == "11"
 
 
 
