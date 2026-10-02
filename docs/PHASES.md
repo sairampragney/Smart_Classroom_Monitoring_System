@@ -353,9 +353,26 @@ path, `-Stop` cleanup, unrelated-process protection, and 226 backend tests +
 
 ---
 
-## Phase 13 — Final Testing & Quality
+## Phase 13 — Final Testing & Quality ✅
 
 **Objective:** complete verification across hardware, backend, CV, ML,
 frontend, and integration. Final documentation.
 
-**Rule:** physical hardware results must never be claimed unless actually tested.
+This was a hardening phase: no architecture was changed. Full results live in
+[`VERIFICATION.md`](VERIFICATION.md).
+
+Verified: **392 tests, 392 passed, 0 failed** (226 backend/Arduino + 166
+frontend) · production build exit 0 with 0 TS errors · 15/15 live endpoints ·
+WebSocket connect/disconnect/reconnect/2-client/change-only · measured camera
+17.5–30.8 FPS · ML predictions from the real artifact · history rows from live
+CV · no mocks, no secrets, no junk tracked · `start.ps1` normal/conflict/failure/
+camera-absent/`-Stop` all correct.
+
+> **Hardware verification remains incomplete, and that is stated plainly.** No
+> Arduino was ever connected (0 serial ports throughout) and no person was in
+> front of the webcam, so live sensors, disconnect/reconnect, live head-count
+> changes and box alignment are **NOT TESTED**. The face detector was
+> independently confirmed against 127 real images (82 detections), which proves
+> the pipeline is real without pretending the live test happened.
+
+**Verdict: software-complete, hardware verification pending.**

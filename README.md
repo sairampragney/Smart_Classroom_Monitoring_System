@@ -39,22 +39,30 @@ progress tracker.
 | 10 | System Monitoring | ✅ Complete |
 | 11 | Integration | ✅ Complete (software paths verified) |
 | 12 | Local Demo Automation | ✅ Complete |
-| 13 | Final Testing & Quality | ⏳ Pending |
+| 13 | Final Testing & Quality | ✅ Complete |
 
-See [`docs/PHASES.md`](docs/PHASES.md) for the full phase plan.
+**Status: software-complete, hardware verification pending.** All 392 automated
+tests pass and the production build is clean. Physical Arduino tests and
+live-person face-detection tests could not be performed because no board and no
+participant were available.
+
+See [`docs/PHASES.md`](docs/PHASES.md) for the phase plan and
+[`docs/VERIFICATION.md`](docs/VERIFICATION.md) for the **final verification
+matrix and known limitations**.
 
 > **Phases 1 & 2 are both complete.** Phase 1 was previously reported as done
 > but never actually implemented. It has now been built from scratch after the
 > Phase 2 backend, as required. The dev server, all six routes, and the
 > production build have all been verified.
 
-> **Hardware caveat for Phase 11.** No Arduino board is currently connected to
-> this machine, so every Arduino-side path was verified as *honestly absent*
+> **Hardware verification caveat.** No Arduino board has ever been connected
+> to this machine, so every Arduino-side path was verified as *honestly absent*
 > (`DISCONNECTED`, `has_data: false`, zero serial ports) rather than by reading
-> live sensor data. The camera path **was** verified live at 640x480. Face
-> detection with a real person in frame, multi-face counting, and on-screen box
-> alignment remain unverified and need a human participant. See
-> [`docs/INTEGRATION.md`](docs/INTEGRATION.md) for the full matrix.
+> live sensor data. The camera **was** verified live at 640x480 with real
+> measured FPS, and the face detector was separately confirmed against real
+> images. Face detection with a real person in frame, multi-face counting, and
+> on-screen box alignment still require a human participant. The exact list is
+> in [`docs/VERIFICATION.md`](docs/VERIFICATION.md) §4.
 
 ---
 
@@ -116,6 +124,56 @@ cd frontend; npm run dev
 ```
 
 Stop each with `Ctrl+C` in its own window.
+
+---
+
+## College Demonstration
+
+Keep this list open during the demo. Each step has something you can point at on
+screen, so nothing can fail silently.
+
+| # | Action | What you should see |
+| --- | --- | --- |
+| 1 | Connect the Arduino (USB **data** cable) | — |
+| 2 | Make sure the webcam is uncovered | — |
+| 3 | Open PowerShell, `cd D:\Smart_Classroom_Monitoring_System` | — |
+| 4 | Run `.\start.ps1` | `SYSTEM READY` with real states |
+| 5 | Open <http://localhost:5173> | Dashboard loads |
+| 6 | Check **System** (`/system`) | backend `RUNNING`, ML `LOADED`, DB `READY` |
+| 7 | Confirm **Arduino `CONNECTED`** and the COM port | not `DISCONNECTED` |
+| 8 | Open **Live Monitoring** (`/live`) | port + Arduino state |
+| 9 | Click **RUN PROGRAM** | state becomes running |
+| 10 | Show real sensor values | temperature, humidity, light, motion |
+| 11 | Open **Computer Vision** (`/vision`) → **Start** | live video + FPS |
+| 12 | Sit in frame | `HEAD COUNT = 1`, box on your face |
+| 13 | Add / remove people | count changes 1 → 2 → 1, no refresh |
+| 14 | Open **ML Analysis** (`/ml`) | real model comparison table |
+| 15 | Open **History** (`/history`) | stored records and charts |
+| 16 | Return to **System** | full component health |
+| 17 | When finished: `.\start.ps1 -Stop` | processes stop, ports released |
+
+**If the Arduino is not connected**, steps 7–10 are simply skipped. The rest of
+the demo works, and the UI honestly shows `DISCONNECTED` — a valid state, not a
+fault.
+
+**If a step misbehaves**, the **System** page is the fastest diagnosis: it
+shows what the backend actually believes about every component.
+
+### Demo checklist (printable)
+
+```text
+[ ] .\start.ps1          -> SYSTEM READY
+[ ] /system              -> backend RUNNING, ML LOADED, DB READY
+[ ] /live                -> Arduino CONNECTED
+[ ] RUN PROGRAM          -> values update about once per second
+[ ] /vision + Start      -> video + measured FPS
+[ ] 1 person             -> HEAD COUNT = 1, box on face
+[ ] 2 people             -> HEAD COUNT = 2, two boxes
+[ ] 1 person             -> HEAD COUNT = 1
+[ ] /ml                  -> model comparison
+[ ] /history             -> stored rows
+[ ] .\start.ps1 -Stop    -> clean shutdown
+```
 
 ---
 
@@ -940,6 +998,60 @@ an error. To fix:
 
 The **System** page shows the real state of every component and is the fastest
 way to see what the backend actually believes.
+
+---
+
+## Testing
+
+```powershell
+# backend + Arduino contract tests
+backend\.venv\Scripts\python.exe -m pytest backend/tests arduino/tests -q -p no:cacheprovider
+
+# frontend logic checks
+cd frontend
+node tests/cvMapping.test.ts
+node tests/historyFormat.test.ts
+node tests/systemStatus.test.ts
+
+# production build
+npm run build
+```
+
+Current results: **392 tests, 392 passed, 0 failed** (226 backend/Arduino +
+166 frontend), and the production build exits 0 with no TypeScript errors.
+See [`docs/VERIFICATION.md`](docs/VERIFICATION.md) for the full matrix.
+
+---
+
+## Known limitations
+
+These are real constraints, not hedges. The full list, with detail, is in
+[`docs/VERIFICATION.md`](docs/VERIFICATION.md) §5.
+
+1. **Model evaluation metrics are dataset-specific and do not represent
+   validated real-world classroom performance.** The reported ~99.85% accuracy
+   was measured on the UCI Room Occupancy Estimation dataset.
+2. **Light-scale mismatch.** Training light range ≈ **0–280**, but the Arduino
+   LDR reports **0–1023** (10-bit ADC). The values are not normalized and are
+   not equivalent; this can materially affect real predictions.
+3. **Temperature range differs too** — dataset ≈ 24.4–29.0 °C versus a DHT22
+   that can report −40…+80 °C. Out-of-range inputs are extrapolation.
+4. **Face detection is bounded by YuNet.** Performance degrades with heavy
+   occlusion, strong backlighting, low light, and faces turned far from the
+   camera. The head count counts *detected* faces, not people.
+5. **No identity recognition.** The system counts faces and does not identify
+   or track individuals.
+6. **Single-machine local architecture** — no cloud backend, no multi-user
+   support, no remote access.
+7. **Physical hardware tests are incomplete.** No Arduino board was ever
+   connected and no person was in front of the webcam during development, so
+   live sensor, disconnect/reconnect, live face-count and box-alignment tests
+   remain **NOT TESTED** and are listed in
+   [`docs/VERIFICATION.md`](docs/VERIFICATION.md) §4.
+8. **Browser rendering was not machine-verified** — no browser automation was
+   available, so visual checks need a person.
+9. **History is change-triggered with a 60 s heartbeat**, not a fixed-interval
+   log, so row spacing is intentionally non-uniform.
 
 ---
 
