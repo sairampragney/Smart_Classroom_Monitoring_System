@@ -1,139 +1,82 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter+Tight:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ==========================================================
-   Dark Violet AI + IoT Command Center - design tokens
-   ========================================================== */
 @layer base {
   :root {
-    --bg-deep: #070611;
-    --bg-secondary: #0d0b1a;
-    --bg-card: #121022;
-    --violet: #8b5cf6;
-    --violet-electric: #a855f7;
-    --indigo: #6366f1;
-    --violet-soft: #c084fc;
-    --fg: #f8fafc;
-    --fg-muted: #94a3b8;
+    --bg-main: #ffffff;
+    --text-primary: #000000;
+    --text-muted: #666666;
+    --border-hairline: #e5e5e5;
+    --silver-cube: #d8dce1;
   }
 
   * {
-    border-color: rgba(139, 92, 246, 0.12);
+    border-color: var(--border-hairline);
   }
 
   html,
   body,
   #root {
     height: 100%;
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    font-family: 'Inter Tight', 'Inter', system-ui, -apple-system, sans-serif;
   }
 
   body {
-    @apply bg-bg-deep text-fg antialiased;
+    @apply bg-white text-black antialiased;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
     text-rendering: optimizeLegibility;
     overflow-x: hidden;
   }
 
-  /* Visible, on-brand focus ring for keyboard users. */
   :focus-visible {
-    outline: 2px solid var(--violet-electric);
+    outline: 2px solid #000000;
     outline-offset: 2px;
-    border-radius: 4px;
   }
 
-  /* Slim violet scrollbars */
   ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: 6px;
+    height: 6px;
   }
   ::-webkit-scrollbar-track {
-    background: var(--bg-deep);
+    background: #ffffff;
   }
   ::-webkit-scrollbar-thumb {
-    background: rgba(139, 92, 246, 0.28);
+    background: #d4d4d4;
     border-radius: 999px;
-    border: 2px solid var(--bg-deep);
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(139, 92, 246, 0.45);
+    background: #a3a3a3;
   }
 }
 
 @layer components {
-  /* ---- Glass card: the core surface of the console ---- */
-  .glass-card {
-    @apply relative rounded-2xl border border-violet-500/10 bg-bg-card/70 shadow-card backdrop-blur-xl;
+  /* Matte frosted-glass panel in white/neutral aesthetic */
+  .frosted-panel {
+    @apply bg-white/80 backdrop-blur-md border border-neutral-200 rounded-xl shadow-subtle;
   }
 
-  /* Subtle top highlight - sells the "glass" without heavy effects. */
-  .glass-card::before {
-    content: '';
-    @apply pointer-events-none absolute inset-x-0 top-0 h-px;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      rgba(168, 85, 247, 0.45),
-      transparent
-    );
+  .border-hairline {
+    border-color: #e5e5e5;
   }
 
-  .glass-card-hover {
-    @apply transition-all duration-300;
-  }
-  .glass-card-hover:hover {
-    @apply border-violet-500/30 shadow-glow;
-    transform: translateY(-2px);
+  .btn-primary {
+    @apply inline-flex items-center justify-center px-6 py-3 text-sm font-semibold tracking-wide text-white bg-black hover:bg-neutral-800 transition-colors rounded-lg focus-visible:outline-none disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
-  /* ---- Section label ---- */
-  .section-label {
-    @apply text-[11px] font-semibold uppercase tracking-[0.14em] text-fg-muted;
+  .btn-secondary {
+    @apply inline-flex items-center justify-center px-6 py-3 text-sm font-semibold tracking-wide text-black bg-neutral-100 hover:bg-neutral-200 border border-neutral-300 transition-colors rounded-lg focus-visible:outline-none disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
-  /* ---- Page title ---- */
-  .page-title {
-    @apply text-2xl font-bold tracking-tight text-fg sm:text-3xl;
-  }
-
-  /* ---- Monospace numeric readouts ---- */
-  .metric-value {
-    @apply font-mono tabular-nums tracking-tight text-fg;
-  }
-
-  /* ---- Ambient background layers ---- */
-  .bg-console {
-    background-image:
-      radial-gradient(ellipse 70% 50% at 50% -8%, rgba(99, 102, 241, 0.16), transparent 65%),
-      radial-gradient(ellipse 55% 45% at 88% 8%, rgba(168, 85, 247, 0.12), transparent 70%);
-  }
-
-  .bg-grid-overlay {
-    background-image:
-      linear-gradient(rgba(139, 92, 246, 0.05) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(139, 92, 246, 0.05) 1px, transparent 1px);
-    background-size: 44px 44px;
-    -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 0%, #000 30%, transparent 85%);
-    mask-image: radial-gradient(ellipse 90% 70% at 50% 0%, #000 30%, transparent 85%);
-  }
-
-  /* Very light noise so large dark areas are not perfectly flat. */
-  .bg-noise::after {
-    content: '';
-    @apply pointer-events-none absolute inset-0 opacity-[0.025];
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+  .btn-outline {
+    @apply inline-flex items-center justify-center px-6 py-3 text-sm font-semibold tracking-wide text-black bg-white hover:bg-neutral-50 border border-black transition-colors rounded-lg focus-visible:outline-none disabled:opacity-50 disabled:cursor-not-allowed;
   }
 }
 
-@layer utilities {
-  .text-gradient-violet {
-    @apply bg-gradient-to-r from-violet-soft via-violet to-indigo bg-clip-text text-transparent;
-  }
-}
-
-/* ==========================================================
-   Reduced motion - honour the OS accessibility setting
-   ========================================================== */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -142,9 +85,5 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
-  }
-
-  .glass-card-hover:hover {
-    transform: none;
   }
 }
